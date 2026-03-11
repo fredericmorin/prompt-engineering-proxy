@@ -57,7 +57,7 @@ check-backend: .venv ## Run backend checks (lint + type-check + test)
 	uv run ruff check
 	uv run ruff format --check
 	uv run ty check
-# 	uv run pytest
+	uv run pytest
 
 check-frontend: frontend/node_modules ## Run frontend checks (lint + type-check + test)
 	cd frontend && npm run lint
@@ -68,9 +68,8 @@ check-frontend: frontend/node_modules ## Run frontend checks (lint + type-check 
 # ── Formatting ───────────────────────────────────────────────────────────────
 
 format: .venv frontend/node_modules ## Auto-format all code
-	uv run ruff check --fix backend/
-	uv run ruff format backend/
-	uv run ty check backend/
+	uv run ruff check --fix src/
+	uv run ruff format src/
 	cd frontend && npm run format
 
 # ── Build ────────────────────────────────────────────────────────────────────

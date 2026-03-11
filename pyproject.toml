@@ -16,11 +16,15 @@ dependencies = [
     "uvicorn",
     "fastapi",
     "pydantic-settings",
-    "sqlalchemy>=2.0.48",
+    "httpx",
+    "aiosqlite",
+    "redis[hiredis]",
+    "sse-starlette",
+    "python-ulid",
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "ty", "ruff", "uv", "ipdb"]
+dev = ["pytest", "pytest-asyncio", "httpx", "ty", "ruff", "uv", "ipdb"]
 
 [tool.ruff]
 line-length = 120
