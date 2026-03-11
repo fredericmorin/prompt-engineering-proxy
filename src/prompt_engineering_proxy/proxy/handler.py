@@ -93,9 +93,7 @@ async def proxy_request(request: Request, handler: ProtocolHandler) -> Response:
     is_streaming = bool(body.get("stream", False))
     model = handler.extract_model(body)
 
-    forward_headers = {
-        k: v for k, v in request.headers.items() if k.lower() not in _SKIP_REQUEST_HEADERS
-    }
+    forward_headers = {k: v for k, v in request.headers.items() if k.lower() not in _SKIP_REQUEST_HEADERS}
 
     repo = RequestRepository(db)
     proxy_req = ProxyRequest(

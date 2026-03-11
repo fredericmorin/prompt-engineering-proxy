@@ -216,9 +216,7 @@ async def test_non_streaming_proxy_upstream_error_returns_502(
     await _add_test_server(db)
 
     fake_req = httpx.Request("POST", "https://api.openai.com/v1/chat/completions")
-    app.state.http_client.request = AsyncMock(
-        side_effect=httpx.ConnectError("connection refused", request=fake_req)
-    )
+    app.state.http_client.request = AsyncMock(side_effect=httpx.ConnectError("connection refused", request=fake_req))
 
     response = await client.post(
         "/v1/chat/completions",
