@@ -88,30 +88,27 @@ docker run -p 8000:8000 -e REDIS_URL=redis://host:6379 prompt-engineering-proxy
 
 ```
 src/prompt_engineering_proxy/  # FastAPI application (Python package)
-  main.py             # App factory, lifespan, CORS, mount routers
+  main.py             # Entrypoint — imports create_app()
+  app.py              # App factory, lifespan (DB/Redis/httpx), CORS, routers
   config.py           # pydantic-settings based configuration
-  proxy/              # Transparent LLM proxy logic
+  proxy/              # Transparent LLM proxy logic [Phase 2 ✓]
     router.py         # Route registration for /v1/* endpoints
     handler.py        # Core intercept → forward → tee → store logic
-    streaming.py      # SSE stream tee (fork to client + Redis)
+    streaming.py      # SSE tee: forward raw bytes to client + publish chunks to Redis
     protocols/        # Per-protocol parsing (no cross-format conversion)
-      base.py         # Abstract protocol handler
-      openai_chat.py  # /v1/chat/completions specifics
-      openai_responses.py  # /v1/responses specifics
-      anthropic.py    # /v1/messages specifics
-  storage/            # SQLite persistence layer
-    database.py       # Connection management, schema migrations
-    models.py         # Pydantic models for DB records
-    repository.py     # CRUD operations
+      base.py         # ProtocolHandler ABC
+      openai_chat.py  # /v1/chat/completions — non-streaming + streaming [✓]
+      openai_responses.py  # /v1/responses (placeholder)
+      anthropic.py    # /v1/messages (placeholder)
+  storage/            # SQLite persistence layer [Phase 1 ✓]
+    database.py       # Connection management, WAL mode, schema migrations
+    models.py         # Pydantic models: Server, ProxyRequest
+    repository.py     # CRUD + update operations
   realtime/           # Redis pub/sub → SSE to frontend
-    publisher.py      # Publish proxy events to Redis
-    subscriber.py     # Subscribe + push SSE to browser clients
-    events.py         # Event type definitions
-  api/                # Management REST API for web UI
-    requests.py       # Request history CRUD + export
-    servers.py        # Upstream server config CRUD
-    models.py         # Model listing (queries upstream)
-    replay.py         # Replay/send edited requests
+    publisher.py      # Publish proxy lifecycle + stream chunk events to Redis
+    subscriber.py     # Subscribe + push SSE to browser clients (Phase 3)
+    events.py         # Event type constants and ProxyEvent model
+  api/                # Management REST API for web UI (Phase 4)
 tests/                # pytest tests (top-level)
 
 frontend/src/         # Vue.js 3 SPA
@@ -171,8 +168,9 @@ frontend/src/         # Vue.js 3 SPA
 
 ### Key Constraints
 - Proxy must not modify request/response payloads (transparent pass-through)
-- SSE streams must be forwarded with zero-copy semantics where possible
-- API keys in stored request headers should be redacted (show first/last 4 chars)
+- SSE streams forwarded as raw bytes; events parsed from a side buffer for Redis/storage
+- API keys in stored request headers are redacted (first 4 + last 4 chars of token)
+- Shared `httpx.AsyncClient` on `app.state.http_client` (connection pooling); tests mock this instance
 - SQLite WAL mode for concurrent reads during writes
 - Frontend must gracefully handle SSE disconnection and reconnection
 

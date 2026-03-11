@@ -81,6 +81,42 @@ class RequestRepository:
             (limit, offset),
         )
 
+    async def update(
+        self,
+        request_id: str,
+        response_status: int | None = None,
+        response_headers: str | None = None,
+        response_body: str | None = None,
+        duration_ms: int | None = None,
+        ttfb_ms: int | None = None,
+        prompt_tokens: int | None = None,
+        completion_tokens: int | None = None,
+        error: str | None = None,
+    ) -> None:
+        fields: dict[str, int | str] = {}
+        if response_status is not None:
+            fields["response_status"] = response_status
+        if response_headers is not None:
+            fields["response_headers"] = response_headers
+        if response_body is not None:
+            fields["response_body"] = response_body
+        if duration_ms is not None:
+            fields["duration_ms"] = duration_ms
+        if ttfb_ms is not None:
+            fields["ttfb_ms"] = ttfb_ms
+        if prompt_tokens is not None:
+            fields["prompt_tokens"] = prompt_tokens
+        if completion_tokens is not None:
+            fields["completion_tokens"] = completion_tokens
+        if error is not None:
+            fields["error"] = error
+        if not fields:
+            return
+        set_clause = ", ".join(f"{k} = ?" for k in fields)
+        values: tuple[int | str, ...] = tuple(fields.values()) + (request_id,)
+        await self.db.execute(f"UPDATE proxy_requests SET {set_clause} WHERE id = ?", values)
+        await self.db.commit()
+
     async def delete(self, request_id: str) -> None:
         await self.db.execute("DELETE FROM proxy_requests WHERE id = ?", (request_id,))
         await self.db.commit()
