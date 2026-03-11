@@ -3,12 +3,14 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from prompt_engineering_proxy.config import settings
+from prompt_engineering_proxy.proxy.router import router as proxy_router
 from prompt_engineering_proxy.realtime.publisher import RedisPublisher
 from prompt_engineering_proxy.storage.database import Database
 
@@ -39,9 +41,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         logger.warning("Redis not available at %s — real-time features disabled", settings.redis_url)
         app.state.redis = publisher  # Store even if not connected; health check reports status
 
+    # Shared async HTTP client for upstream requests (connection pooling)
+    http_client = httpx.AsyncClient(
+        timeout=httpx.Timeout(connect=10.0, read=120.0, write=10.0, pool=10.0),
+        follow_redirects=True,
+    )
+    app.state.http_client = http_client
+
     yield
 
     # Shutdown
+    await http_client.aclose()
     await publisher.close()
     await db.close()
     logger.info("Prompt Engineering Proxy stopped")
@@ -58,6 +68,9 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Proxy routes (/v1/*)
+    app.include_router(proxy_router)
 
     @app.get("/health")
     async def health() -> JSONResponse:

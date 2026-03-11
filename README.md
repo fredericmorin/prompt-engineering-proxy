@@ -44,18 +44,18 @@ An LLM proxy with an interactive web interface for capturing, inspecting, editin
 ## Features
 
 ### Proxy Core
-- [ ] Transparent LLM API proxy — clients point to this instead of the real API
-- [ ] Configurable upstream server targets (multiple LLM providers)
-- [ ] Pass-through authentication (forward client-provided API keys to upstream)
-- [ ] Full request/response capture and storage
-- [ ] Request/response header capture
-- [ ] Unique request ID assignment and tracking
-- [ ] Error response capture and logging
-- [ ] Request timing and latency measurement
+- [x] Transparent LLM API proxy — clients point to this instead of the real API
+- [x] Configurable upstream server targets (multiple LLM providers)
+- [x] Pass-through authentication (forward client-provided API keys to upstream)
+- [x] Full request/response capture and storage
+- [x] Request/response header capture (API keys redacted: first 4 + last 4 chars)
+- [x] Unique request ID assignment and tracking (ULID)
+- [x] Error response capture and logging
+- [x] Request timing and latency measurement
 - [ ] Configurable request timeout handling
 
 ### Multi-Protocol Support
-- [ ] OpenAI Chat Completions API (`POST /v1/chat/completions`)
+- [x] OpenAI Chat Completions API (`POST /v1/chat/completions`)
   - Bearer token auth forwarding
   - `messages[]` format with roles (system, user, assistant, tool)
   - Tool/function calling pass-through
@@ -78,14 +78,14 @@ An LLM proxy with an interactive web interface for capturing, inspecting, editin
   - `GET /v1/models` (Anthropic — if available)
 
 ### Streaming (SSE)
-- [ ] Transparent SSE stream forwarding to clients
-- [ ] Real-time stream tee — fork to client + Redis simultaneously
-- [ ] Per-protocol SSE event parsing and reassembly
+- [x] Transparent SSE stream forwarding to clients (raw byte pass-through)
+- [x] Real-time stream tee — fork to client + Redis simultaneously
+- [x] Per-protocol SSE event parsing and reassembly
   - OpenAI Chat: `data: {json}\n\n` chunks, `data: [DONE]` terminator
   - OpenAI Responses: `event: {type}\ndata: {json}\n\n` semantic events
   - Anthropic: `event: {type}\ndata: {json}\n\n` named events with `ping` keep-alive
-- [ ] Full response reconstruction from stream chunks for storage
-- [ ] Stream interruption / error handling
+- [x] Full response reconstruction from stream chunks for storage
+- [x] Stream interruption / error handling
 - [ ] Backpressure handling for slow clients
 
 ### Live Dashboard (Web UI)
@@ -386,11 +386,11 @@ prompt-engineering-proxy/
 - Basic Vue.js app with router and layout
 
 ### Phase 2 — Proxy Core
-- Implement transparent proxy for OpenAI Chat Completions (non-streaming)
-- Request/response capture and SQLite storage
-- Add streaming (SSE) proxy with tee to Redis
-- Extend to OpenAI Responses protocol
-- Extend to Anthropic Messages protocol
+- [x] Implement transparent proxy for OpenAI Chat Completions (non-streaming)
+- [x] Request/response capture and SQLite storage
+- [x] Add streaming (SSE) proxy with tee to Redis
+- [ ] Extend to OpenAI Responses protocol
+- [ ] Extend to Anthropic Messages protocol
 
 ### Phase 3 — Live Dashboard
 - SSE endpoint for frontend real-time events
