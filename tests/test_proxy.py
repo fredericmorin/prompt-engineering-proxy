@@ -82,14 +82,14 @@ def test_openai_chat_extract_model() -> None:
 
 def test_openai_chat_extract_usage() -> None:
     handler = OpenAIChatHandler()
-    body = {"usage": {"prompt_tokens": 10, "completion_tokens": 20}}
+    body: dict[str, object] = {"usage": {"prompt_tokens": 10, "completion_tokens": 20}}
     assert handler.extract_usage(body) == (10, 20)
     assert handler.extract_usage({}) == (None, None)
 
 
 def test_openai_chat_assemble_streaming_response() -> None:
     handler = OpenAIChatHandler()
-    chunks = [
+    chunks: list[dict[str, object]] = [
         {"id": "c1", "model": "gpt-4o", "choices": [{"delta": {"role": "assistant"}, "finish_reason": None}]},
         {"id": "c1", "model": "gpt-4o", "choices": [{"delta": {"content": "Hello"}, "finish_reason": None}]},
         {"id": "c1", "model": "gpt-4o", "choices": [{"delta": {"content": " world"}, "finish_reason": "stop"}]},
