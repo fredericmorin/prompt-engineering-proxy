@@ -175,9 +175,13 @@ An LLM proxy with an interactive web interface for capturing, inspecting, editin
 |---|---|
 | **uv** | Python package manager and virtual environment |
 | **Ruff** | Python linter and formatter |
+| **ty** | Python type checker (from the Ruff/Astral toolchain) |
 | **pytest** | Python test framework |
 | **ESLint + Prettier** | Frontend linting and formatting |
-| **Docker Compose** | Local dev environment (Redis) |
+| **Docker** | Production container image |
+| **Docker Compose** | Local dev environment (Redis + app) |
+| **Make** | Task runner — setup, dev, check, build shortcuts |
+| **GitHub Actions** | CI (lint/type-check/test) + CD (Docker image build/push) |
 
 ## Project Structure
 
@@ -186,9 +190,16 @@ prompt-engineering-proxy/
 ├── README.md
 ├── CLAUDE.md
 ├── LICENSE
+├── Makefile                        # Task runner (setup, dev, check, build)
+├── Dockerfile                      # Multi-stage production image
+├── docker-compose.yml              # Local dev (Redis + app)
 ├── pyproject.toml                  # Python project config (uv)
-├── docker-compose.yml              # Redis for local dev
 ├── .env.example                    # Environment variable template
+│
+├── .github/
+│   └── workflows/
+│       ├── ci.yml                  # Lint, type-check, test on every PR/push
+│       └── release.yml             # Build + push Docker image on main/tags
 │
 ├── backend/
 │   ├── __init__.py
@@ -411,12 +422,17 @@ prompt-engineering-proxy/
 - Redis 7+
 - uv (Python package manager)
 
-### Setup
+### Quick Start (with Make)
 ```bash
-# Clone the repository
 git clone https://github.com/fredericmorin/prompt-engineering-proxy.git
 cd prompt-engineering-proxy
 
+make setup    # Install all dependencies (backend + frontend)
+make dev      # Start Redis, backend (auto-reload), and frontend dev server
+```
+
+### Manual Setup
+```bash
 # Start Redis
 docker compose up -d
 
@@ -430,12 +446,38 @@ npm install
 npm run dev
 ```
 
+### Make Targets
+```bash
+make setup      # Install backend + frontend dependencies
+make dev        # Start all services for local development
+make check      # Run all checks: lint, type-check, test (backend + frontend)
+make lint       # Ruff lint + ESLint
+make typecheck  # ty (Python) type checking
+make test       # pytest + frontend tests
+make format     # Auto-format all code (Ruff + Prettier)
+make build      # Build frontend + Docker image
+make docker     # Build production Docker image
+make clean      # Remove build artifacts, caches, .venv
+```
+
+### Docker (Production)
+```bash
+# Build
+docker build -t prompt-engineering-proxy .
+
+# Run (with external Redis)
+docker run -p 8000:8000 -e REDIS_URL=redis://host:6379 prompt-engineering-proxy
+
+# Or use docker compose for everything
+docker compose --profile prod up
+```
+
 ### Configuration
 ```bash
 # .env
 PROXY_PORT=8000
 REDIS_URL=redis://localhost:6379
-DATABASE_URL=sqlite:///data/proxy.db
+DATABASE_PATH=data/proxy.db
 ```
 
 ### Usage
@@ -450,6 +492,30 @@ client = openai.OpenAI(
 ```
 
 Then open `http://localhost:5173` to see live traffic and use the prompt engineering tools.
+
+## CI/CD
+
+### GitHub Actions — CI (`ci.yml`)
+Runs on every push and pull request:
+1. **Backend checks**: Ruff lint, Ruff format check, ty type-check, pytest
+2. **Frontend checks**: ESLint, Prettier format check, TypeScript type-check, build
+3. **Matrix**: Python 3.12+ × Node 20+
+4. **Services**: Redis (via `services` container) for integration tests
+
+### GitHub Actions — Release (`release.yml`)
+Runs on every push to `main`/`master` and on version tags (`v*`):
+1. Build multi-stage Docker image
+2. Push to GitHub Container Registry (`ghcr.io`)
+3. Tag as `latest` on main, version tag on releases (e.g., `v1.0.0`)
+
+## Docker
+
+The production Docker image uses a multi-stage build:
+1. **Stage 1 — Frontend build**: Node.js, `npm ci`, `npm run build` → static assets
+2. **Stage 2 — Backend**: Python 3.12-slim, `uv sync --frozen`, copy built frontend into `backend/static/`
+3. **Runtime**: uvicorn serves both the API and static frontend assets
+
+The image is self-contained — only requires an external Redis instance.
 
 ## License
 

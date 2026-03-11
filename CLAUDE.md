@@ -10,9 +10,25 @@ LLM API proxy with web UI for capturing, inspecting, editing, and replaying LLM 
 
 - **Backend**: Python 3.12+ / FastAPI / httpx / Redis / SQLite (aiosqlite) / SSE
 - **Frontend**: Vue.js 3 (Composition API) / TypeScript / Vite / Tailwind CSS v4 / shadcn-vue / Pinia
-- **Tooling**: uv (Python), npm (JS), Ruff (lint/format), pytest, ESLint + Prettier, Docker Compose (Redis)
+- **Type checking**: ty (Python type checker)
+- **Tooling**: uv (Python), npm (JS), Ruff (lint/format), ty (type-check), pytest, ESLint + Prettier
+- **Infra**: Docker (production image), Docker Compose (local dev), GitHub Actions (CI/CD), Make (task runner)
 
 ## Commands
+
+### Make (preferred)
+```bash
+make setup      # Install all dependencies (backend + frontend)
+make dev        # Start Redis + backend (reload) + frontend dev server
+make check      # Run all checks: lint + type-check + test
+make lint       # Ruff check + ESLint
+make typecheck  # ty type checking
+make test       # pytest + frontend tests
+make format     # Auto-format all code (Ruff + Prettier)
+make build      # Build frontend + Docker image
+make docker     # Build production Docker image
+make clean      # Remove caches, .venv, node_modules, dist
+```
 
 ### Backend
 ```bash
@@ -28,6 +44,9 @@ uv run pytest
 # Lint and format
 uv run ruff check backend/
 uv run ruff format backend/
+
+# Type check
+uv run ty check backend/
 ```
 
 ### Frontend
@@ -52,11 +71,17 @@ npm run format
 
 ### Infrastructure
 ```bash
-# Start Redis
+# Start Redis (local dev)
 docker compose up -d
 
 # Stop Redis
 docker compose down
+
+# Build production Docker image
+docker build -t prompt-engineering-proxy .
+
+# Run production image
+docker run -p 8000:8000 -e REDIS_URL=redis://host:6379 prompt-engineering-proxy
 ```
 
 ## Project Structure
@@ -106,6 +131,7 @@ frontend/src/         # Vue.js 3 SPA
 
 ### Python (Backend)
 - **Style**: Ruff for linting and formatting (follows Black defaults, 88 char line width)
+- **Type checking**: ty for static type analysis. All code must pass `ty check` with no errors
 - **Type hints**: Use type annotations on all function signatures
 - **Async**: All I/O operations must be async (httpx, aiosqlite, Redis)
 - **Imports**: Group: stdlib → third-party → local. Use absolute imports from `backend.`
@@ -149,6 +175,24 @@ frontend/src/         # Vue.js 3 SPA
 - API keys in stored request headers should be redacted (show first/last 4 chars)
 - SQLite WAL mode for concurrent reads during writes
 - Frontend must gracefully handle SSE disconnection and reconnection
+
+## CI/CD
+
+### GitHub Actions — CI (`ci.yml`)
+- Triggers: push to any branch, pull requests
+- Jobs: backend checks (ruff, ty, pytest) + frontend checks (eslint, prettier, tsc, build)
+- Services: Redis container for integration tests
+- Must pass before merge
+
+### GitHub Actions — Release (`release.yml`)
+- Triggers: push to `main`/`master`, version tags (`v*`)
+- Builds multi-stage Docker image
+- Pushes to GitHub Container Registry (`ghcr.io`)
+
+### Docker Image
+- Multi-stage build: (1) frontend build with Node.js, (2) backend with Python 3.12-slim
+- Built frontend is served as static files by the backend
+- Only requires external Redis at runtime
 
 ## Environment Variables
 
