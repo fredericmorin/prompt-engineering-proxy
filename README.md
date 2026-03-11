@@ -5,11 +5,11 @@ An LLM proxy with an interactive web interface for capturing, inspecting, editin
 ## Architecture Overview
 
 ```
-┌─────────────┐       ┌──────────────────────────────────────────────┐       ┌─────────────┐
-│  LLM Client │──────▶│           Prompt Engineering Proxy           │──────▶│  LLM API    │
-│  (any SDK)  │◀──────│                                              │◀──────│  (upstream)  │
+┌─────────────┐       ┌─────────────────────────────────────────────┐       ┌─────────────┐
+│  LLM Client │──────▶│           Prompt Engineering Proxy          │──────▶│  LLM API    │
+│  (any SDK)  │◀──────│                                             │◀──────│  (upstream)  │
 └─────────────┘       │  ┌────────────┐  ┌───────┐  ┌────────────┐  │       └─────────────┘
-                      │  │  FastAPI    │  │ Redis │  │  SQLite    │  │
+                      │  │  FastAPI   │  │ Redis │  │  SQLite    │  │
                       │  │  Proxy +   │  │ Pub/  │  │  Request/  │  │
                       │  │  Mgmt API  │  │ Sub   │  │  Response  │  │
                       │  └────────────┘  └───┬───┘  │  Storage   │  │
