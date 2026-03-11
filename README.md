@@ -201,49 +201,50 @@ prompt-engineering-proxy/
 │       ├── ci.yml                  # Lint, type-check, test on every PR/push
 │       └── release.yml             # Build + push Docker image on main/tags
 │
-├── backend/
-│   ├── __init__.py
-│   ├── main.py                     # FastAPI app factory, lifespan, CORS
-│   ├── config.py                   # Settings via pydantic-settings
-│   │
-│   ├── proxy/
-│   │   ├── __init__.py
-│   │   ├── router.py               # Proxy route registration (catch-all for /v1/*)
-│   │   ├── handler.py              # Core proxy logic: intercept, forward, tee
-│   │   ├── streaming.py            # SSE stream tee: fork to client + Redis
-│   │   └── protocols/
-│   │       ├── __init__.py
-│   │       ├── base.py             # Base protocol handler interface
-│   │       ├── openai_chat.py      # OpenAI Chat Completions specifics
-│   │       ├── openai_responses.py # OpenAI Responses API specifics
-│   │       └── anthropic.py        # Anthropic Messages API specifics
-│   │
-│   ├── storage/
-│   │   ├── __init__.py
-│   │   ├── database.py             # SQLite connection, migrations, helpers
-│   │   ├── models.py               # Pydantic models for DB records
-│   │   └── repository.py           # CRUD operations for requests/responses
-│   │
-│   ├── realtime/
-│   │   ├── __init__.py
-│   │   ├── publisher.py            # Redis publish events
-│   │   ├── subscriber.py           # Redis subscribe + SSE push to frontend
-│   │   └── events.py               # Event type definitions
-│   │
-│   ├── api/
-│   │   ├── __init__.py
-│   │   ├── router.py               # Management API route aggregation
-│   │   ├── requests.py             # GET/DELETE captured requests
-│   │   ├── servers.py              # CRUD upstream server configuration
-│   │   ├── models.py               # GET available models from upstream
-│   │   └── replay.py              # POST replay/send edited requests
-│   │
-│   └── tests/
-│       ├── conftest.py
-│       ├── test_proxy.py
-│       ├── test_streaming.py
-│       ├── test_storage.py
-│       └── test_api.py
+├── src/
+│   └── prompt_engineering_proxy/    # Python package (backend)
+│       ├── __init__.py
+│       ├── main.py                  # FastAPI app factory, lifespan, CORS
+│       ├── config.py                # Settings via pydantic-settings
+│       │
+│       ├── proxy/
+│       │   ├── __init__.py
+│       │   ├── router.py            # Proxy route registration (catch-all for /v1/*)
+│       │   ├── handler.py           # Core proxy logic: intercept, forward, tee
+│       │   ├── streaming.py         # SSE stream tee: fork to client + Redis
+│       │   └── protocols/
+│       │       ├── __init__.py
+│       │       ├── base.py          # Base protocol handler interface
+│       │       ├── openai_chat.py   # OpenAI Chat Completions specifics
+│       │       ├── openai_responses.py # OpenAI Responses API specifics
+│       │       └── anthropic.py     # Anthropic Messages API specifics
+│       │
+│       ├── storage/
+│       │   ├── __init__.py
+│       │   ├── database.py          # SQLite connection, migrations, helpers
+│       │   ├── models.py            # Pydantic models for DB records
+│       │   └── repository.py        # CRUD operations for requests/responses
+│       │
+│       ├── realtime/
+│       │   ├── __init__.py
+│       │   ├── publisher.py         # Redis publish events
+│       │   ├── subscriber.py        # Redis subscribe + SSE push to frontend
+│       │   └── events.py            # Event type definitions
+│       │
+│       └── api/
+│           ├── __init__.py
+│           ├── router.py            # Management API route aggregation
+│           ├── requests.py          # GET/DELETE captured requests
+│           ├── servers.py           # CRUD upstream server configuration
+│           ├── models.py            # GET available models from upstream
+│           └── replay.py            # POST replay/send edited requests
+│
+├── tests/                           # pytest tests
+│   ├── conftest.py
+│   ├── test_proxy.py
+│   ├── test_streaming.py
+│   ├── test_storage.py
+│   └── test_api.py
 │
 ├── frontend/
 │   ├── package.json
@@ -438,7 +439,7 @@ docker compose up -d
 
 # Backend
 uv sync
-uv run uvicorn backend.main:app --reload --port 8000
+uv run uvicorn prompt_engineering_proxy.main:app --reload --port 8000
 
 # Frontend (separate terminal)
 cd frontend
@@ -512,7 +513,7 @@ Runs on every push to `main`/`master` and on version tags (`v*`):
 
 The production Docker image uses a multi-stage build:
 1. **Stage 1 — Frontend build**: Node.js, `npm ci`, `npm run build` → static assets
-2. **Stage 2 — Backend**: Python 3.12-slim, `uv sync --frozen`, copy built frontend into `backend/static/`
+2. **Stage 2 — Backend**: Python 3.12-slim, `uv sync --frozen`, copy built frontend into static serving directory
 3. **Runtime**: uvicorn serves both the API and static frontend assets
 
 The image is self-contained — only requires an external Redis instance.

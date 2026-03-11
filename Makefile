@@ -21,12 +21,12 @@ setup-frontend: ## Install frontend dependencies
 dev: dev-redis ## Start all services for local development
 	@echo "Starting backend and frontend..."
 	@trap 'kill 0' EXIT; \
-		uv run uvicorn backend.main:app --reload --port 8000 & \
+		uv run uvicorn prompt_engineering_proxy.main:app --reload --port 8000 & \
 		cd frontend && npm run dev & \
 		wait
 
 dev-backend: ## Start backend dev server only
-	uv run uvicorn backend.main:app --reload --port 8000
+	uv run uvicorn prompt_engineering_proxy.main:app --reload --port 8000
 
 dev-frontend: ## Start frontend dev server only
 	cd frontend && npm run dev
@@ -39,12 +39,12 @@ dev-redis: ## Start Redis via Docker Compose
 check: lint typecheck test ## Run all checks (lint + type-check + test)
 
 lint: ## Run linters (Ruff + ESLint)
-	uv run ruff check backend/
-	uv run ruff format --check backend/
+	uv run ruff check src/
+	uv run ruff format --check src/
 	cd frontend && npm run lint
 
 typecheck: ## Run type checkers (ty + tsc)
-	uv run ty check backend/
+	uv run ty check src/
 	cd frontend && npx vue-tsc --noEmit
 
 test: ## Run tests (pytest + frontend)
@@ -54,8 +54,8 @@ test: ## Run tests (pytest + frontend)
 # ── Formatting ───────────────────────────────────────────────────────────────
 
 format: ## Auto-format all code
-	uv run ruff check --fix backend/
-	uv run ruff format backend/
+	uv run ruff check --fix src/
+	uv run ruff format src/
 	cd frontend && npm run format
 
 # ── Build ────────────────────────────────────────────────────────────────────

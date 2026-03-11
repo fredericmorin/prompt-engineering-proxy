@@ -37,13 +37,13 @@ jobs:
         run: uv sync
 
       - name: Ruff lint
-        run: uv run ruff check backend/
+        run: uv run ruff check src/
 
       - name: Ruff format check
-        run: uv run ruff format --check backend/
+        run: uv run ruff format --check src/
 
       - name: Type check (ty)
-        run: uv run ty check backend/
+        run: uv run ty check src/
 
       - name: Run tests
         run: uv run pytest
