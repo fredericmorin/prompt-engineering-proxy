@@ -7,9 +7,7 @@ from prompt_engineering_proxy.storage.repository import RequestRepository, Serve
 
 @pytest.mark.asyncio
 async def test_database_creates_tables(database: Database) -> None:
-    tables = await database.fetchall(
-        "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
-    )
+    tables = await database.fetchall("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
     table_names = [t["name"] for t in tables]
     assert "servers" in table_names
     assert "proxy_requests" in table_names
