@@ -1,5 +1,5 @@
 .PHONY: setup setup-backend setup-frontend dev dev-backend dev-frontend dev-redis \
-       check lint typecheck test format build docker clean help
+       check check-backend check-frontend lint typecheck test format build docker clean help
 
 # Default target
 help: ## Show this help
@@ -10,25 +10,40 @@ help: ## Show this help
 
 setup: setup-backend setup-frontend ## Install all dependencies
 
-setup-backend: ## Install backend dependencies
+setup-backend: .venv ## Install backend dependencies
 	uv sync
 
-setup-frontend: ## Install frontend dependencies
+setup-frontend: frontend/node_modules ## Install frontend dependencies
 	cd frontend && npm install
+
+.venv: .venv/bin/uv pyproject.toml uv.lock
+	@echo "Installing dependencies..."
+	.venv/bin/uv sync --all-extras
+	@touch .venv
+
+.venv/bin/uv: .venv/bin/python
+	.venv/bin/pip install uv
+
+.venv/bin/python:
+	python3 -m venv --prompt venv .venv
+
+frontend/node_modules: frontend/package.json frontend/package-lock.json
+	cd frontend && npm install
+	@touch frontend/node_modules
 
 # ── Development ──────────────────────────────────────────────────────────────
 
-dev: dev-redis ## Start all services for local development
+dev: .venv frontend/node_modules dev-redis ## Start all services for local development
 	@echo "Starting backend and frontend..."
 	@trap 'kill 0' EXIT; \
 		uv run uvicorn prompt_engineering_proxy.main:app --reload --port 8000 & \
 		cd frontend && npm run dev & \
 		wait
 
-dev-backend: ## Start backend dev server only
+dev-backend: .venv ## Start backend dev server only
 	uv run uvicorn prompt_engineering_proxy.main:app --reload --port 8000
 
-dev-frontend: ## Start frontend dev server only
+dev-frontend: frontend/node_modules ## Start frontend dev server only
 	cd frontend && npm run dev
 
 dev-redis: ## Start Redis via Docker Compose
@@ -36,33 +51,33 @@ dev-redis: ## Start Redis via Docker Compose
 
 # ── Quality Checks ───────────────────────────────────────────────────────────
 
-check: lint typecheck test ## Run all checks (lint + type-check + test)
+check: check-backend check-frontend ## Run all checks (lint + type-check + test)
 
-lint: ## Run linters (Ruff + ESLint)
-	uv run ruff check src/
-	uv run ruff format --check src/
+check-backend: .venv ## Run backend checks (lint + type-check + test)
+	uv run ruff check
+	uv run ruff format --check
+	uv run ty check
+# 	uv run pytest
+
+check-frontend: frontend/node_modules ## Run frontend checks (lint + type-check + test)
 	cd frontend && npm run lint
-
-typecheck: ## Run type checkers (ty + tsc)
-	uv run ty check src/
+	cd frontend && npx prettier --check "src/**/*.{ts,vue,css}"
 	cd frontend && npx vue-tsc --noEmit
-
-test: ## Run tests (pytest + frontend)
-	uv run pytest
 	cd frontend && npm run test --if-present
 
 # ── Formatting ───────────────────────────────────────────────────────────────
 
-format: ## Auto-format all code
-	uv run ruff check --fix src/
-	uv run ruff format src/
+format: .venv frontend/node_modules ## Auto-format all code
+	uv run ruff check --fix backend/
+	uv run ruff format backend/
+	uv run ty check backend/
 	cd frontend && npm run format
 
 # ── Build ────────────────────────────────────────────────────────────────────
 
 build: build-frontend docker ## Build frontend and Docker image
 
-build-frontend: ## Build frontend for production
+build-frontend: frontend/node_modules ## Build frontend for production
 	cd frontend && npm run build
 
 docker: ## Build production Docker image

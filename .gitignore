@@ -1,0 +1,6 @@
+.env
+__pycache__
+/data
+/frontend/node_modules
+/static/index.html
+/static/assets
