@@ -19,7 +19,7 @@ COPY pyproject.toml uv.lock* ./
 RUN uv sync --frozen --no-dev
 
 # Copy backend source
-COPY backend/ ./backend/
+COPY src/ ./src/
 
 # Copy built frontend assets
 COPY --from=frontend-build /app/frontend/dist ./frontend/dist
@@ -33,4 +33,4 @@ ENV DATABASE_PATH=/app/data/proxy.db
 
 EXPOSE 8000
 
-CMD ["uv", "run", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "uvicorn", "prompt_engineering_proxy.main:app", "--host", "0.0.0.0", "--port", "8000"]

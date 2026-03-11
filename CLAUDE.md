@@ -36,17 +36,17 @@ make clean      # Remove caches, .venv, node_modules, dist
 uv sync
 
 # Run dev server (auto-reload)
-uv run uvicorn backend.main:app --reload --port 8000
+uv run uvicorn prompt_engineering_proxy.main:app --reload --port 8000
 
 # Run tests
 uv run pytest
 
 # Lint and format
-uv run ruff check backend/
-uv run ruff format backend/
+uv run ruff check src/
+uv run ruff format src/
 
 # Type check
-uv run ty check backend/
+uv run ty check src/
 ```
 
 ### Frontend
@@ -87,7 +87,7 @@ docker run -p 8000:8000 -e REDIS_URL=redis://host:6379 prompt-engineering-proxy
 ## Project Structure
 
 ```
-backend/              # FastAPI application
+src/prompt_engineering_proxy/  # FastAPI application (Python package)
   main.py             # App factory, lifespan, CORS, mount routers
   config.py           # pydantic-settings based configuration
   proxy/              # Transparent LLM proxy logic
@@ -112,7 +112,7 @@ backend/              # FastAPI application
     servers.py        # Upstream server config CRUD
     models.py         # Model listing (queries upstream)
     replay.py         # Replay/send edited requests
-  tests/              # pytest tests
+tests/                # pytest tests (top-level)
 
 frontend/src/         # Vue.js 3 SPA
   router/             # Vue Router config
@@ -134,7 +134,7 @@ frontend/src/         # Vue.js 3 SPA
 - **Type checking**: ty for static type analysis. All code must pass `ty check` with no errors
 - **Type hints**: Use type annotations on all function signatures
 - **Async**: All I/O operations must be async (httpx, aiosqlite, Redis)
-- **Imports**: Group: stdlib → third-party → local. Use absolute imports from `backend.`
+- **Imports**: Group: stdlib → third-party → local. Use absolute imports from `prompt_engineering_proxy.`
 - **Models**: Pydantic v2 models for all data structures. Use `model_validate` / `model_dump`
 - **Error handling**: Let FastAPI exception handlers deal with HTTP errors. Use specific exception types
 - **Tests**: pytest with async support (pytest-asyncio). Use fixtures for DB and Redis setup
