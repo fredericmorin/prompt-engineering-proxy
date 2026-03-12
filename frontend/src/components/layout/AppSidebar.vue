@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { LayoutDashboard, PenTool } from "lucide-vue-next";
+import { LayoutDashboard, PenTool, Settings } from "lucide-vue-next";
 import { RouterLink, useRoute } from "vue-router";
 
 const route = useRoute();
@@ -7,6 +7,7 @@ const route = useRoute();
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/editor", label: "Editor", icon: PenTool },
+  { to: "/settings", label: "Settings", icon: Settings },
 ];
 </script>
 

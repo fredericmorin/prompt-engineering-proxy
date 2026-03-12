@@ -31,6 +31,18 @@ class ServerRepository:
     async def list_all(self) -> list[dict[str, Any]]:
         return await self.db.fetchall("SELECT * FROM servers ORDER BY created_at DESC")
 
+    async def update(self, server_id: str, **fields: object) -> None:
+        if not fields:
+            return
+        set_clause = ", ".join(f"{k} = ?" for k in fields)
+        values: tuple[object, ...] = tuple(fields.values()) + (server_id,)
+        await self.db.execute(f"UPDATE servers SET {set_clause} WHERE id = ?", values)
+        await self.db.commit()
+
+    async def clear_default(self) -> None:
+        await self.db.execute("UPDATE servers SET is_default = 0")
+        await self.db.commit()
+
     async def delete(self, server_id: str) -> None:
         await self.db.execute("DELETE FROM servers WHERE id = ?", (server_id,))
         await self.db.commit()

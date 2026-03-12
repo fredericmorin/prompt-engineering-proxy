@@ -108,10 +108,13 @@ src/prompt_engineering_proxy/  # FastAPI application (Python package)
     publisher.py      # Publish proxy lifecycle + stream chunk events to Redis
     subscriber.py     # RedisSubscriber: subscribes to a channel, yields SSE strings
     events.py         # Event type constants and ProxyEvent model
-  api/                # Management REST API for web UI [Phase 3 ✓]
+  api/                # Management REST API for web UI [Phase 3+4 ✓]
     router.py         # Aggregates api/* routers under /api prefix
     requests.py       # GET /api/requests (filtered list), GET/DELETE /api/requests/:id
     events.py         # GET /api/events (lifecycle SSE), GET /api/requests/:id/stream (chunk SSE)
+    servers.py        # CRUD /api/servers — upstream server config [Phase 4 ✓]
+    models.py         # GET /api/servers/:id/models — fetch models from upstream [Phase 4 ✓]
+    send.py           # POST /api/send + POST /api/requests/:id/replay [Phase 4 ✓]
 tests/                # pytest tests (top-level)
 
 frontend/src/         # Vue.js 3 SPA
@@ -136,10 +139,13 @@ frontend/src/         # Vue.js 3 SPA
       RequestHeaders.vue      # Key-value header table
       RequestBody.vue         # Pretty-printed JSON body
       StreamingView.vue       # Live token stream via /api/requests/:id/stream SSE
+  stores/
+    servers.ts        # Pinia store: server list CRUD [Phase 4 ✓]
   pages/
     DashboardPage.vue         # Request list + filters + SSE connection [Phase 3 ✓]
-    RequestDetailPage.vue     # Request detail + live SSE reload on completion [Phase 3 ✓]
-    EditorPage.vue            # Placeholder (Phase 4)
+    RequestDetailPage.vue     # Request detail + "Edit in Editor" button [Phase 3+4 ✓]
+    EditorPage.vue            # Prompt editor: server/model/messages/params + send [Phase 4 ✓]
+    SettingsPage.vue          # Server configuration CRUD [Phase 4 ✓]
 ```
 
 ## Coding Conventions

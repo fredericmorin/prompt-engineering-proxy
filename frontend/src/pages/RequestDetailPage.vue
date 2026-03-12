@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { PenTool } from "lucide-vue-next";
 import { getRequest, type ProxyRequestDetail } from "@/lib/api";
 import { useSSE } from "@/composables/useSSE";
 import RequestDetail from "@/components/requests/RequestDetail.vue";
@@ -52,6 +53,16 @@ watch(
       <span class="font-mono text-xs text-muted-foreground">{{
         route.params.id
       }}</span>
+      <div class="ml-auto">
+        <button
+          v-if="request"
+          class="flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium hover:bg-gray-50"
+          @click="router.push({ name: 'editor', query: { from: route.params.id } })"
+        >
+          <PenTool class="h-3.5 w-3.5" />
+          Edit in Editor
+        </button>
+      </div>
     </div>
 
     <div v-if="notFound" class="p-8 text-center text-sm text-muted-foreground">
