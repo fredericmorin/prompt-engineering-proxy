@@ -45,7 +45,13 @@ const form = ref<ServerCreate>({
 
 function openCreate() {
   editingId.value = null;
-  form.value = { name: "", base_url: "", protocol: "openai_chat", api_key: "", is_default: false };
+  form.value = {
+    name: "",
+    base_url: "",
+    protocol: "openai_chat",
+    api_key: "",
+    is_default: false,
+  };
   errorMsg.value = "";
   showForm.value = true;
 }
@@ -124,7 +130,9 @@ onMounted(() => store.fetchServers());
       </div>
 
       <!-- Server list -->
-      <div v-if="store.loading" class="py-12 text-center text-sm text-gray-500">Loading…</div>
+      <div v-if="store.loading" class="py-12 text-center text-sm text-gray-500">
+        Loading…
+      </div>
       <div
         v-else-if="store.servers.length === 0"
         class="rounded-lg border border-dashed border-gray-300 py-12 text-center text-sm text-gray-500"
@@ -139,7 +147,9 @@ onMounted(() => store.fetchServers());
         >
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
-              <span class="font-medium text-sm truncate">{{ server.name }}</span>
+              <span class="font-medium text-sm truncate">{{
+                server.name
+              }}</span>
               <span
                 v-if="server.is_default"
                 class="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700"
@@ -147,10 +157,16 @@ onMounted(() => store.fetchServers());
                 default
               </span>
             </div>
-            <div class="mt-0.5 text-xs text-gray-500 truncate">{{ server.base_url }}</div>
-            <div class="mt-0.5 text-xs text-gray-400">{{ server.protocol }}</div>
+            <div class="mt-0.5 text-xs text-gray-500 truncate">
+              {{ server.base_url }}
+            </div>
+            <div class="mt-0.5 text-xs text-gray-400">
+              {{ server.protocol }}
+            </div>
             <div class="mt-1.5 flex items-center gap-1">
-              <code class="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600 truncate max-w-xs">
+              <code
+                class="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600 truncate max-w-xs"
+              >
                 {{ proxyPrefix(server.name) }}
               </code>
               <button
@@ -209,7 +225,9 @@ onMounted(() => store.fetchServers());
         </h3>
         <form class="space-y-4" @submit.prevent="saveForm">
           <div>
-            <label class="mb-1 block text-sm font-medium text-gray-700">Name</label>
+            <label class="mb-1 block text-sm font-medium text-gray-700"
+              >Name</label
+            >
             <input
               v-model="form.name"
               required
@@ -218,7 +236,9 @@ onMounted(() => store.fetchServers());
             />
           </div>
           <div>
-            <label class="mb-1 block text-sm font-medium text-gray-700">Base URL</label>
+            <label class="mb-1 block text-sm font-medium text-gray-700"
+              >Base URL</label
+            >
             <input
               v-model="form.base_url"
               required
@@ -227,7 +247,9 @@ onMounted(() => store.fetchServers());
             />
           </div>
           <div>
-            <label class="mb-1 block text-sm font-medium text-gray-700">Protocol</label>
+            <label class="mb-1 block text-sm font-medium text-gray-700"
+              >Protocol</label
+            >
             <select
               v-model="form.protocol"
               class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
@@ -240,7 +262,9 @@ onMounted(() => store.fetchServers());
           <div>
             <label class="mb-1 block text-sm font-medium text-gray-700">
               API Key
-              <span v-if="editingId" class="font-normal text-gray-400">(leave blank to keep current)</span>
+              <span v-if="editingId" class="font-normal text-gray-400"
+                >(leave blank to keep current)</span
+              >
             </label>
             <input
               v-model="form.api_key"
@@ -251,10 +275,20 @@ onMounted(() => store.fetchServers());
             />
           </div>
           <div class="flex items-center gap-2">
-            <input id="is_default" v-model="form.is_default" type="checkbox" class="rounded" />
-            <label for="is_default" class="text-sm text-gray-700">Set as default server</label>
+            <input
+              id="is_default"
+              v-model="form.is_default"
+              type="checkbox"
+              class="rounded"
+            />
+            <label for="is_default" class="text-sm text-gray-700"
+              >Set as default server</label
+            >
           </div>
-          <div v-if="errorMsg" class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">
+          <div
+            v-if="errorMsg"
+            class="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600"
+          >
             {{ errorMsg }}
           </div>
           <div class="flex justify-end gap-2">
@@ -270,7 +304,9 @@ onMounted(() => store.fetchServers());
               :disabled="saving"
               class="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50"
             >
-              {{ saving ? "Saving…" : editingId ? "Save Changes" : "Add Server" }}
+              {{
+                saving ? "Saving…" : editingId ? "Save Changes" : "Add Server"
+              }}
             </button>
           </div>
         </form>
