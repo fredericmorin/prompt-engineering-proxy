@@ -89,21 +89,16 @@ An LLM proxy with an interactive web interface for capturing, inspecting, editin
 - [ ] Backpressure handling for slow clients
 
 ### Live Dashboard (Web UI)
-- [ ] Real-time request/response feed via SSE from backend
-- [ ] Live streaming response display — see tokens arrive as they stream
-- [ ] Request list with status indicators (pending, streaming, complete, error)
-- [ ] Auto-scroll with pause-on-hover
-- [ ] Request filtering by:
-  - API protocol type (OpenAI Chat / OpenAI Responses / Anthropic)
-  - Model name
-  - Status (success, error, streaming)
-  - Time range
-  - Text search in request/response content
-- [ ] Request detail view:
-  - Full request headers and body (syntax highlighted JSON)
-  - Full response headers and body
-  - Timing breakdown (latency, time-to-first-token, total stream duration)
-  - Token usage display (prompt tokens, completion tokens, total)
+- [x] Real-time request/response feed via SSE from backend (`GET /api/events`)
+- [x] Live streaming response display — see tokens arrive as they stream
+- [x] Request list with status indicators (pending, streaming, complete, error)
+- [x] Auto-scroll with pause-on-hover
+- [x] Request filtering by protocol and model name
+- [x] Request detail view:
+  - Full request/response headers and body (pretty-printed JSON)
+  - Timing breakdown (TTFB, total duration)
+  - Token usage display (prompt tokens, completion tokens)
+- [ ] Time range and text search filters
 - [ ] Collapsible message thread view for conversation requests
 
 ### Prompt Engineering Interface
@@ -368,7 +363,8 @@ prompt-engineering-proxy/
 | `PUT` | `/api/servers/:id` | Update a server |
 | `DELETE` | `/api/servers/:id` | Delete a server |
 | `GET` | `/api/servers/:id/models` | Query models from upstream server |
-| `GET` | `/api/events` | SSE stream — real-time events for web UI |
+| `GET` | `/api/events` | SSE stream — lifecycle events (`request.started/completed/error`) |
+| `GET` | `/api/requests/:id/stream` | SSE stream — live token chunks for a specific request |
 
 ### Redis Pub/Sub Channels
 | Channel | Events |
@@ -392,12 +388,13 @@ prompt-engineering-proxy/
 - [ ] Extend to OpenAI Responses protocol
 - [ ] Extend to Anthropic Messages protocol
 
-### Phase 3 — Live Dashboard
-- SSE endpoint for frontend real-time events
-- Request list page with live updates
-- Request detail page (headers, body, timing)
-- Live streaming response view
-- Filtering and search
+### Phase 3 — Live Dashboard ✓
+- [x] SSE endpoint (`GET /api/events`, `GET /api/requests/:id/stream`) bridging Redis → browser
+- [x] Management API (`GET/DELETE /api/requests`, `GET /api/requests/:id`)
+- [x] Request list page with live updates (Pinia store + SSE composable)
+- [x] Request detail page — headers, body, timing, token counts
+- [x] Live streaming response view — tokens display as they arrive
+- [x] Filtering by protocol and model
 
 ### Phase 4 — Prompt Engineering
 - Server configuration CRUD (UI + API)
