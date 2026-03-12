@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from prompt_engineering_proxy.api.router import router as api_router
 from prompt_engineering_proxy.config import settings
 from prompt_engineering_proxy.proxy.router import router as proxy_router
 from prompt_engineering_proxy.realtime.publisher import RedisPublisher
@@ -71,6 +72,9 @@ def create_app() -> FastAPI:
 
     # Proxy routes (/v1/*)
     app.include_router(proxy_router)
+
+    # Management API (/api/*)
+    app.include_router(api_router)
 
     @app.get("/health")
     async def health() -> JSONResponse:

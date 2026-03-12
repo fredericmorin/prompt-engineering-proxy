@@ -11,7 +11,7 @@ LLM API proxy with web UI for capturing, inspecting, editing, and replaying LLM 
 - **Backend**: Python 3.12+ / FastAPI / httpx / Redis / SQLite (aiosqlite) / SSE
 - **Frontend**: Vue.js 3 (Composition API) / TypeScript / Vite / Tailwind CSS v4 / shadcn-vue / Pinia
 - **Type checking**: ty (Python type checker)
-- **Tooling**: uv (Python), npm (JS), Ruff (lint/format), ty (type-check), pytest, ESLint + Prettier
+- **Tooling**: uv (Python), npm (JS), Ruff (lint/format), ty (type-check), pytest, ESLint (with typescript-eslint) + Prettier
 - **Infra**: Docker (production image), Docker Compose (local dev), GitHub Actions (CI/CD), Make (task runner)
 
 ## Commands
@@ -104,24 +104,42 @@ src/prompt_engineering_proxy/  # FastAPI application (Python package)
     database.py       # Connection management, WAL mode, schema migrations
     models.py         # Pydantic models: Server, ProxyRequest
     repository.py     # CRUD + update operations
-  realtime/           # Redis pub/sub → SSE to frontend
+  realtime/           # Redis pub/sub → SSE to frontend [Phase 3 ✓]
     publisher.py      # Publish proxy lifecycle + stream chunk events to Redis
-    subscriber.py     # Subscribe + push SSE to browser clients (Phase 3)
+    subscriber.py     # RedisSubscriber: subscribes to a channel, yields SSE strings
     events.py         # Event type constants and ProxyEvent model
-  api/                # Management REST API for web UI (Phase 4)
+  api/                # Management REST API for web UI [Phase 3 ✓]
+    router.py         # Aggregates api/* routers under /api prefix
+    requests.py       # GET /api/requests (filtered list), GET/DELETE /api/requests/:id
+    events.py         # GET /api/events (lifecycle SSE), GET /api/requests/:id/stream (chunk SSE)
 tests/                # pytest tests (top-level)
 
 frontend/src/         # Vue.js 3 SPA
   router/             # Vue Router config
-  stores/             # Pinia stores (requests, servers)
-  composables/        # Reusable composition functions (useSSE, etc.)
-  lib/                # API client, utilities
-  components/         # Vue components
-    layout/           # App shell (header, sidebar)
-    requests/         # Request list, detail, filters, streaming view
-    editor/           # Prompt editor, message builder, parameter controls
-    common/           # JsonViewer, DiffViewer, StatusBadge, etc.
-  pages/              # Route-level page components
+  stores/
+    requests.ts       # Pinia store: request list, filters, SSE event handler
+  composables/
+    useSSE.ts         # EventSource wrapper with auto-reconnect and typed event handlers
+  lib/
+    api.ts            # Typed fetch helpers: listRequests, getRequest, deleteRequest + ProxyEvent types
+    utils.ts          # cn() utility
+  components/
+    layout/           # App shell (AppHeader, AppSidebar, AppLayout)
+    common/
+      StatusBadge.vue     # Status chip (pending/streaming/complete/error)
+      TimingDisplay.vue   # TTFB + total duration display
+    requests/
+      RequestList.vue         # Scrollable request feed with auto-scroll
+      RequestListItem.vue     # Single row: protocol, method, path, model, status, timing
+      RequestFilters.vue      # Protocol + model dropdowns
+      RequestDetail.vue       # Full detail: headers, body, timing, token counts
+      RequestHeaders.vue      # Key-value header table
+      RequestBody.vue         # Pretty-printed JSON body
+      StreamingView.vue       # Live token stream via /api/requests/:id/stream SSE
+  pages/
+    DashboardPage.vue         # Request list + filters + SSE connection [Phase 3 ✓]
+    RequestDetailPage.vue     # Request detail + live SSE reload on completion [Phase 3 ✓]
+    EditorPage.vue            # Placeholder (Phase 4)
 ```
 
 ## Coding Conventions

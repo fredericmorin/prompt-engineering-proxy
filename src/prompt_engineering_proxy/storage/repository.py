@@ -81,6 +81,34 @@ class RequestRepository:
             (limit, offset),
         )
 
+    async def list_filtered(
+        self,
+        limit: int = 50,
+        offset: int = 0,
+        protocol: str | None = None,
+        model: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """List requests with optional protocol/model filters, excluding body columns."""
+        conditions: list[str] = []
+        params: list[str | int] = []
+        if protocol:
+            conditions.append("protocol = ?")
+            params.append(protocol)
+        if model:
+            conditions.append("model = ?")
+            params.append(model)
+        where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+        params.extend([limit, offset])
+        return await self.db.fetchall(
+            f"""SELECT id, server_id, protocol, method, path, model,
+                       response_status, is_streaming, duration_ms, ttfb_ms,
+                       prompt_tokens, completion_tokens, error, parent_id, created_at
+                FROM proxy_requests
+                {where}
+                ORDER BY created_at DESC LIMIT ? OFFSET ?""",
+            tuple(params),
+        )
+
     async def update(
         self,
         request_id: str,
