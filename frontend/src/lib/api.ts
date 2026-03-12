@@ -44,7 +44,8 @@ export interface ServerUpdate {
 
 export async function listServers(): Promise<Server[]> {
   const response = await fetch(`${BASE_URL}/api/servers`);
-  if (!response.ok) throw new Error(`Failed to list servers: ${response.status}`);
+  if (!response.ok)
+    throw new Error(`Failed to list servers: ${response.status}`);
   return response.json();
 }
 
@@ -54,22 +55,29 @@ export async function createServer(data: ServerCreate): Promise<Server> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  if (!response.ok) throw new Error(`Failed to create server: ${response.status}`);
+  if (!response.ok)
+    throw new Error(`Failed to create server: ${response.status}`);
   return response.json();
 }
 
-export async function updateServer(id: string, data: ServerUpdate): Promise<Server> {
+export async function updateServer(
+  id: string,
+  data: ServerUpdate,
+): Promise<Server> {
   const response = await fetch(`${BASE_URL}/api/servers/${id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
-  if (!response.ok) throw new Error(`Failed to update server: ${response.status}`);
+  if (!response.ok)
+    throw new Error(`Failed to update server: ${response.status}`);
   return response.json();
 }
 
 export async function deleteServer(id: string): Promise<void> {
-  const response = await fetch(`${BASE_URL}/api/servers/${id}`, { method: "DELETE" });
+  const response = await fetch(`${BASE_URL}/api/servers/${id}`, {
+    method: "DELETE",
+  });
   if (!response.ok && response.status !== 204)
     throw new Error(`Failed to delete server: ${response.status}`);
 }
@@ -84,7 +92,8 @@ export interface ModelInfo {
 
 export async function listServerModels(serverId: string): Promise<ModelInfo[]> {
   const response = await fetch(`${BASE_URL}/api/servers/${serverId}/models`);
-  if (!response.ok) throw new Error(`Failed to list models: ${response.status}`);
+  if (!response.ok)
+    throw new Error(`Failed to list models: ${response.status}`);
   const data = await response.json();
   return (data.models ?? []) as ModelInfo[];
 }
@@ -110,8 +119,12 @@ export async function sendRequest(
     body: JSON.stringify({ server_id: serverId, body }),
   });
   if (!response.ok) {
-    const err = await response.json().catch(() => ({ detail: response.statusText }));
-    throw new Error(String((err as { detail?: string }).detail ?? response.statusText));
+    const err = await response
+      .json()
+      .catch(() => ({ detail: response.statusText }));
+    throw new Error(
+      String((err as { detail?: string }).detail ?? response.statusText),
+    );
   }
   return response.json();
 }
@@ -126,8 +139,12 @@ export async function replayRequest(
     body: JSON.stringify({ body: bodyOverrides ?? null }),
   });
   if (!response.ok) {
-    const err = await response.json().catch(() => ({ detail: response.statusText }));
-    throw new Error(String((err as { detail?: string }).detail ?? response.statusText));
+    const err = await response
+      .json()
+      .catch(() => ({ detail: response.statusText }));
+    throw new Error(
+      String((err as { detail?: string }).detail ?? response.statusText),
+    );
   }
   return response.json();
 }

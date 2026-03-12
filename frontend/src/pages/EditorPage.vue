@@ -43,10 +43,6 @@ const clonedFrom = ref<string | null>(null);
 
 // ── Computed ──────────────────────────────────────────────────────────────
 
-const selectedServer = computed(() =>
-  serversStore.servers.find((s) => s.id === selectedServerId.value),
-);
-
 const responseText = computed(() => {
   if (!response.value) return null;
   const body = response.value.body;
@@ -64,7 +60,10 @@ const responseText = computed(() => {
   const content = body.content;
   if (Array.isArray(content)) {
     return content
-      .filter((c): c is Record<string, unknown> => typeof c === "object" && c !== null)
+      .filter(
+        (c): c is Record<string, unknown> =>
+          typeof c === "object" && c !== null,
+      )
       .map((c) => (c.type === "text" ? String(c.text ?? "") : ""))
       .join("");
   }
@@ -81,7 +80,8 @@ async function fetchModels() {
   try {
     models.value = await listServerModels(selectedServerId.value);
   } catch (e) {
-    modelsError.value = e instanceof Error ? e.message : "Failed to fetch models";
+    modelsError.value =
+      e instanceof Error ? e.message : "Failed to fetch models";
   } finally {
     loadingModels.value = false;
   }
@@ -139,7 +139,10 @@ function buildMessages(): Message[] {
 
 function viewInDashboard() {
   if (response.value) {
-    router.push({ name: "request-detail", params: { id: response.value.request_id } });
+    router.push({
+      name: "request-detail",
+      params: { id: response.value.request_id },
+    });
   }
 }
 
@@ -155,7 +158,8 @@ async function loadFromRequest(id: string) {
     const rawMessages = body.messages;
     if (Array.isArray(rawMessages)) {
       const sys = rawMessages.find(
-        (m): m is Record<string, string> => typeof m === "object" && m !== null && m.role === "system",
+        (m): m is Record<string, string> =>
+          typeof m === "object" && m !== null && m.role === "system",
       );
       if (sys?.content) systemPrompt.value = String(sys.content);
       messages.value = rawMessages
@@ -163,11 +167,16 @@ async function loadFromRequest(id: string) {
           (m): m is Record<string, string> =>
             typeof m === "object" && m !== null && m.role !== "system",
         )
-        .map((m) => ({ role: m.role as Message["role"], content: String(m.content ?? "") }));
-      if (messages.value.length === 0) messages.value = [{ role: "user", content: "" }];
+        .map((m) => ({
+          role: m.role as Message["role"],
+          content: String(m.content ?? ""),
+        }));
+      if (messages.value.length === 0)
+        messages.value = [{ role: "user", content: "" }];
     }
 
-    if (typeof body.temperature === "number") temperature.value = body.temperature;
+    if (typeof body.temperature === "number")
+      temperature.value = body.temperature;
     if (typeof body.max_tokens === "number") maxTokens.value = body.max_tokens;
     if (typeof body.top_p === "number") topP.value = body.top_p;
 
@@ -187,7 +196,8 @@ onMounted(async () => {
   // Pre-select default server
   const def = serversStore.servers.find((s) => s.is_default);
   if (def) selectedServerId.value = def.id;
-  else if (serversStore.servers.length > 0) selectedServerId.value = serversStore.servers[0].id;
+  else if (serversStore.servers.length > 0)
+    selectedServerId.value = serversStore.servers[0].id;
 
   // Load from captured request if query param provided
   const fromId = route.query.from as string | undefined;
@@ -220,13 +230,19 @@ watch(selectedServerId, () => {
         <!-- Server + model row -->
         <div class="flex gap-3 flex-wrap">
           <div class="flex-1 min-w-40">
-            <label class="mb-1 block text-xs font-medium text-gray-600">Server</label>
+            <label class="mb-1 block text-xs font-medium text-gray-600"
+              >Server</label
+            >
             <select
               v-model="selectedServerId"
               class="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
             >
               <option value="" disabled>Select server…</option>
-              <option v-for="s in serversStore.servers" :key="s.id" :value="s.id">
+              <option
+                v-for="s in serversStore.servers"
+                :key="s.id"
+                :value="s.id"
+              >
                 {{ s.name }}
               </option>
             </select>
@@ -234,11 +250,14 @@ watch(selectedServerId, () => {
               v-if="serversStore.servers.length === 0"
               class="mt-1 text-xs text-amber-600"
             >
-              No servers. <RouterLink to="/settings" class="underline">Add one</RouterLink>.
+              No servers.
+              <RouterLink to="/settings" class="underline">Add one</RouterLink>.
             </div>
           </div>
           <div class="flex-1 min-w-40">
-            <label class="mb-1 block text-xs font-medium text-gray-600">Model</label>
+            <label class="mb-1 block text-xs font-medium text-gray-600"
+              >Model</label
+            >
             <div class="flex gap-1">
               <input
                 v-if="models.length === 0"
@@ -252,7 +271,9 @@ watch(selectedServerId, () => {
                 class="flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
               >
                 <option value="" disabled>Select model…</option>
-                <option v-for="m in models" :key="m.id" :value="m.id">{{ m.id }}</option>
+                <option v-for="m in models" :key="m.id" :value="m.id">
+                  {{ m.id }}
+                </option>
               </select>
               <button
                 class="rounded-md border border-gray-300 p-1.5 text-gray-500 hover:bg-gray-50 disabled:opacity-40"
@@ -264,13 +285,17 @@ watch(selectedServerId, () => {
                 <RefreshCw v-else class="h-4 w-4" />
               </button>
             </div>
-            <div v-if="modelsError" class="mt-1 text-xs text-red-500">{{ modelsError }}</div>
+            <div v-if="modelsError" class="mt-1 text-xs text-red-500">
+              {{ modelsError }}
+            </div>
           </div>
         </div>
 
         <!-- System prompt -->
         <div>
-          <label class="mb-1 block text-xs font-medium text-gray-600">System Prompt</label>
+          <label class="mb-1 block text-xs font-medium text-gray-600"
+            >System Prompt</label
+          >
           <textarea
             v-model="systemPrompt"
             rows="3"
@@ -315,7 +340,11 @@ watch(selectedServerId, () => {
               v-model="msg.content"
               rows="3"
               class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400 resize-y"
-              :placeholder="msg.role === 'user' ? 'Enter user message…' : 'Enter assistant message…'"
+              :placeholder="
+                msg.role === 'user'
+                  ? 'Enter user message…'
+                  : 'Enter assistant message…'
+              "
             />
           </div>
         </div>
@@ -327,7 +356,8 @@ watch(selectedServerId, () => {
             <div class="flex items-center gap-3 text-xs text-gray-400">
               <span v-if="response">{{ response.duration_ms }}ms</span>
               <span v-if="response?.prompt_tokens">
-                {{ response.prompt_tokens }}+{{ response.completion_tokens }} tokens
+                {{ response.prompt_tokens }}+{{ response.completion_tokens }}
+                tokens
               </span>
               <button
                 v-if="response"
@@ -357,7 +387,8 @@ watch(selectedServerId, () => {
             <pre
               v-if="responseText"
               class="whitespace-pre-wrap break-words font-sans leading-relaxed"
-            >{{ responseText }}</pre>
+              >{{ responseText }}</pre
+            >
             <pre v-else class="whitespace-pre-wrap text-xs text-gray-600">{{
               JSON.stringify(response.body, null, 2)
             }}</pre>
@@ -386,7 +417,9 @@ watch(selectedServerId, () => {
         </div>
 
         <div>
-          <label class="mb-1 block text-xs font-medium text-gray-600">Max Tokens</label>
+          <label class="mb-1 block text-xs font-medium text-gray-600"
+            >Max Tokens</label
+          >
           <input
             v-model.number="maxTokens"
             type="number"
@@ -397,7 +430,9 @@ watch(selectedServerId, () => {
         </div>
 
         <div>
-          <label class="mb-1 block text-xs font-medium text-gray-600">Top P</label>
+          <label class="mb-1 block text-xs font-medium text-gray-600"
+            >Top P</label
+          >
           <input
             v-model.number="topP"
             type="number"

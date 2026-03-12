@@ -57,7 +57,9 @@ watch(
         <button
           v-if="request"
           class="flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium hover:bg-gray-50"
-          @click="router.push({ name: 'editor', query: { from: route.params.id } })"
+          @click="
+            router.push({ name: 'editor', query: { from: route.params.id } })
+          "
         >
           <PenTool class="h-3.5 w-3.5" />
           Edit in Editor

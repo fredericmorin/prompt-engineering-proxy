@@ -40,5 +40,12 @@ export const useServersStore = defineStore("servers", () => {
     servers.value = servers.value.filter((s) => s.id !== id);
   }
 
-  return { servers, loading, fetchServers, addServer, editServer, removeServer };
+  return {
+    servers,
+    loading,
+    fetchServers,
+    addServer,
+    editServer,
+    removeServer,
+  };
 });
