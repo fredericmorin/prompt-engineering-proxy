@@ -28,7 +28,10 @@ onMounted(() => {
         ]"
       >
         <span
-          :class="['inline-block h-1.5 w-1.5 rounded-full', sse.connected.value ? 'bg-green-500' : 'bg-gray-400']"
+          :class="[
+            'inline-block h-1.5 w-1.5 rounded-full',
+            sse.connected.value ? 'bg-green-500' : 'bg-gray-400',
+          ]"
         />
         {{ sse.connected.value ? "Live" : "Connecting…" }}
       </span>

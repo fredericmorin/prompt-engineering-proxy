@@ -57,7 +57,9 @@ export interface ListRequestsParams {
   model?: string;
 }
 
-export async function listRequests(params: ListRequestsParams = {}): Promise<ProxyRequest[]> {
+export async function listRequests(
+  params: ListRequestsParams = {},
+): Promise<ProxyRequest[]> {
   const query = new URLSearchParams();
   if (params.limit !== undefined) query.set("limit", String(params.limit));
   if (params.offset !== undefined) query.set("offset", String(params.offset));
@@ -65,18 +67,22 @@ export async function listRequests(params: ListRequestsParams = {}): Promise<Pro
   if (params.model) query.set("model", params.model);
   const qs = query.toString();
   const response = await fetch(`${BASE_URL}/api/requests${qs ? `?${qs}` : ""}`);
-  if (!response.ok) throw new Error(`Failed to list requests: ${response.status}`);
+  if (!response.ok)
+    throw new Error(`Failed to list requests: ${response.status}`);
   return response.json();
 }
 
 export async function getRequest(id: string): Promise<ProxyRequestDetail> {
   const response = await fetch(`${BASE_URL}/api/requests/${id}`);
-  if (!response.ok) throw new Error(`Failed to get request: ${response.status}`);
+  if (!response.ok)
+    throw new Error(`Failed to get request: ${response.status}`);
   return response.json();
 }
 
 export async function deleteRequest(id: string): Promise<void> {
-  const response = await fetch(`${BASE_URL}/api/requests/${id}`, { method: "DELETE" });
+  const response = await fetch(`${BASE_URL}/api/requests/${id}`, {
+    method: "DELETE",
+  });
   if (!response.ok && response.status !== 204)
     throw new Error(`Failed to delete request: ${response.status}`);
 }

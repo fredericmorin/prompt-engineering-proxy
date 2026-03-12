@@ -1,15 +1,27 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import { listRequests, getRequest, type ProxyRequest, type ProxyRequestDetail, type ProxyEvent } from "@/lib/api";
+import {
+  listRequests,
+  getRequest,
+  type ProxyRequest,
+  type ProxyRequestDetail,
+  type ProxyEvent,
+} from "@/lib/api";
 
 export const useRequestsStore = defineStore("requests", () => {
   const requests = ref<ProxyRequest[]>([]);
   const loading = ref(false);
   const filters = ref<{ protocol?: string; model?: string }>({});
 
-  const protocols = computed(() => [...new Set(requests.value.map((r) => r.protocol))].sort());
+  const protocols = computed(() =>
+    [...new Set(requests.value.map((r) => r.protocol))].sort(),
+  );
   const models = computed(() =>
-    [...new Set(requests.value.map((r) => r.model).filter(Boolean) as string[])].sort(),
+    [
+      ...new Set(
+        requests.value.map((r) => r.model).filter(Boolean) as string[],
+      ),
+    ].sort(),
   );
 
   async function fetchRequests() {
@@ -37,7 +49,10 @@ export const useRequestsStore = defineStore("requests", () => {
       if (!existing) {
         refreshRequest(event.request_id).catch(() => {});
       }
-    } else if (event.type === "request.completed" || event.type === "request.error") {
+    } else if (
+      event.type === "request.completed" ||
+      event.type === "request.error"
+    ) {
       refreshRequest(event.request_id).catch(() => {});
     }
   }
@@ -47,5 +62,14 @@ export const useRequestsStore = defineStore("requests", () => {
     fetchRequests();
   }
 
-  return { requests, loading, filters, protocols, models, fetchRequests, handleSSEEvent, setFilters };
+  return {
+    requests,
+    loading,
+    filters,
+    protocols,
+    models,
+    fetchRequests,
+    handleSSEEvent,
+    setFilters,
+  };
 });

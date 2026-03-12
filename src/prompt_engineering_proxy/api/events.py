@@ -24,9 +24,7 @@ SSE_HEADERS = {
 }
 
 
-async def _stream_channel(
-    redis_url: str, channel: str, disconnect: asyncio.Event
-) -> AsyncGenerator[str, None]:
+async def _stream_channel(redis_url: str, channel: str, disconnect: asyncio.Event) -> AsyncGenerator[str, None]:
     """Yield SSE strings from a Redis channel until the client disconnects."""
     subscriber = RedisSubscriber()
     async for sse_line in subscriber.subscribe(redis_url, channel):

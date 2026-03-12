@@ -15,7 +15,12 @@ const formatted = computed(() => {
 
 <template>
   <div v-if="formatted">
-    <pre class="overflow-auto rounded bg-muted p-3 text-xs font-mono leading-relaxed max-h-96">{{ formatted }}</pre>
+    <pre
+      class="overflow-auto rounded bg-muted p-3 text-xs font-mono leading-relaxed max-h-96"
+      >{{ formatted }}</pre
+    >
   </div>
-  <p v-else class="text-xs text-muted-foreground">{{ props.label ?? "No body" }}</p>
+  <p v-else class="text-xs text-muted-foreground">
+    {{ props.label ?? "No body" }}
+  </p>
 </template>

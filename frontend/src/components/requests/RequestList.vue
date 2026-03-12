@@ -25,10 +25,16 @@ function onScroll() {
 
 <template>
   <div ref="listEl" class="flex-1 overflow-y-auto" @scroll="onScroll">
-    <div v-if="store.loading && store.requests.length === 0" class="p-8 text-center text-sm text-muted-foreground">
+    <div
+      v-if="store.loading && store.requests.length === 0"
+      class="p-8 text-center text-sm text-muted-foreground"
+    >
       Loading…
     </div>
-    <div v-else-if="store.requests.length === 0" class="p-8 text-center text-sm text-muted-foreground">
+    <div
+      v-else-if="store.requests.length === 0"
+      class="p-8 text-center text-sm text-muted-foreground"
+    >
       No requests captured yet. Send a request through the proxy to get started.
     </div>
     <RequestListItem

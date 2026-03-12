@@ -34,7 +34,9 @@ watch([protocol, model], () => {
     </select>
 
     <span class="ml-auto text-xs text-muted-foreground self-center">
-      {{ store.requests.length }} request{{ store.requests.length !== 1 ? "s" : "" }}
+      {{ store.requests.length }} request{{
+        store.requests.length !== 1 ? "s" : ""
+      }}
     </span>
   </div>
 </template>

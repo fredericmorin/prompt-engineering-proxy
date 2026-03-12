@@ -49,13 +49,18 @@ watch(
         ← Back
       </button>
       <h2 class="text-lg font-semibold">Request Detail</h2>
-      <span class="font-mono text-xs text-muted-foreground">{{ route.params.id }}</span>
+      <span class="font-mono text-xs text-muted-foreground">{{
+        route.params.id
+      }}</span>
     </div>
 
     <div v-if="notFound" class="p-8 text-center text-sm text-muted-foreground">
       Request not found.
     </div>
-    <div v-else-if="!request" class="p-8 text-center text-sm text-muted-foreground">
+    <div
+      v-else-if="!request"
+      class="p-8 text-center text-sm text-muted-foreground"
+    >
       Loading…
     </div>
     <RequestDetail v-else :request="request" />
