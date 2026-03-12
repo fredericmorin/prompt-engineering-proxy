@@ -1,8 +1,25 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
-import { Plus, Pencil, Trash2, Star, StarOff } from "lucide-vue-next";
+import { Plus, Pencil, Trash2, Star, StarOff, Copy } from "lucide-vue-next";
 import { useServersStore } from "@/stores/servers";
 import type { ServerCreate, ServerUpdate } from "@/lib/api";
+
+/** Mirror of the Python name_to_slug() function. */
+function nameToSlug(name: string): string {
+  const slug = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return slug || "server";
+}
+
+function proxyPrefix(name: string): string {
+  return `${window.location.origin}/${nameToSlug(name)}/v1`;
+}
+
+async function copyToClipboard(text: string) {
+  await navigator.clipboard.writeText(text).catch(() => {});
+}
 
 const store = useServersStore();
 
@@ -132,6 +149,18 @@ onMounted(() => store.fetchServers());
             </div>
             <div class="mt-0.5 text-xs text-gray-500 truncate">{{ server.base_url }}</div>
             <div class="mt-0.5 text-xs text-gray-400">{{ server.protocol }}</div>
+            <div class="mt-1.5 flex items-center gap-1">
+              <code class="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600 truncate max-w-xs">
+                {{ proxyPrefix(server.name) }}
+              </code>
+              <button
+                class="rounded p-0.5 text-gray-400 hover:text-gray-600"
+                title="Copy proxy base URL"
+                @click="copyToClipboard(proxyPrefix(server.name))"
+              >
+                <Copy class="h-3 w-3" />
+              </button>
+            </div>
           </div>
           <div class="flex items-center gap-1 shrink-0">
             <button

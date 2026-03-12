@@ -1,7 +1,14 @@
+import re
 from datetime import UTC, datetime
 
 from pydantic import BaseModel, Field
 from ulid import ULID
+
+
+def name_to_slug(name: str) -> str:
+    """Convert a server display name to a URL-safe slug (lowercase alphanumeric + hyphens)."""
+    slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+    return slug or "server"
 
 
 def new_ulid() -> str:

@@ -310,3 +310,62 @@ async def test_streaming_proxy_stores_assembled_response(
     choices = body.get("choices", [])
     assert len(choices) == 1
     assert choices[0]["message"]["content"] == "Hi!"
+
+
+# ---------------------------------------------------------------------------
+# Prefixed proxy route tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_prefixed_route_routes_to_correct_server(
+    app_client: tuple[AsyncClient, Database, FastAPI],
+) -> None:
+    """POST /{server-slug}/v1/chat/completions routes to the server matching the slug."""
+    client, db, app = app_client
+    server = await _add_test_server(db)  # name="test-openai" → slug="test-openai"
+
+    app.state.http_client.request = AsyncMock(return_value=httpx.Response(200, json=FAKE_CHAT_RESPONSE))
+
+    response = await client.post(
+        "/test-openai/v1/chat/completions",
+        json={"model": "gpt-4o", "messages": [{"role": "user", "content": "Hi"}]},
+        headers={"Authorization": "Bearer sk-test1234567890abcdef"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["id"] == "chatcmpl-test"
+
+    # Check stored record has correct server_id and clean path
+    repo = RequestRepository(db)
+    requests = await repo.list_recent(limit=1)
+    assert requests[0]["server_id"] == server.id
+    assert requests[0]["path"] == "/v1/chat/completions"
+
+
+@pytest.mark.asyncio
+async def test_prefixed_route_unknown_slug_returns_404(
+    app_client: tuple[AsyncClient, Database, FastAPI],
+) -> None:
+    client, db, _app = app_client
+    await _add_test_server(db)
+
+    response = await client.post(
+        "/nonexistent-server/v1/chat/completions",
+        json={"model": "gpt-4o", "messages": [{"role": "user", "content": "Hi"}]},
+    )
+    assert response.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_prefixed_route_unsupported_path_returns_404(
+    app_client: tuple[AsyncClient, Database, FastAPI],
+) -> None:
+    client, db, _app = app_client
+    await _add_test_server(db)
+
+    response = await client.post(
+        "/test-openai/v1/unknown/endpoint",
+        json={"model": "gpt-4o", "messages": []},
+    )
+    assert response.status_code == 404

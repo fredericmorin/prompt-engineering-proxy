@@ -335,10 +335,13 @@ prompt-engineering-proxy/
 ### Proxy Endpoints (transparent pass-through)
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/v1/chat/completions` | Proxy → OpenAI Chat Completions upstream |
+| `POST` | `/v1/chat/completions` | Proxy → default openai_chat server |
+| `POST` | `/{server-slug}/v1/chat/completions` | Proxy → specific server by name slug |
 | `POST` | `/v1/responses` | Proxy → OpenAI Responses upstream |
 | `POST` | `/v1/messages` | Proxy → Anthropic Messages upstream |
 | `GET` | `/v1/models` | Proxy → upstream model listing |
+
+Each configured server gets a URL prefix derived from its name (e.g. server "OpenAI Prod" → `http://proxy/openai-prod/v1`). This lets multiple clients target different upstream servers simultaneously. The prefix is shown (with copy button) on the Settings page.
 
 ### Management API (`/api/`)
 | Method | Path | Description |
@@ -471,15 +474,28 @@ DATABASE_PATH=data/proxy.db
 ```
 
 ### Usage
-Point your LLM client at the proxy:
+Point your LLM client at the proxy. Two routing modes are supported:
+
+**Default server** (routes to the `is_default` server for the protocol):
 ```python
 import openai
 
 client = openai.OpenAI(
-    base_url="http://localhost:8000/v1",  # proxy instead of api.openai.com
-    api_key="sk-..."                       # your real API key, forwarded upstream
+    base_url="http://localhost:8000/v1",
+    api_key="sk-..."
 )
 ```
+
+**Named server** (routes to a specific configured server by name slug):
+```python
+# Server named "OpenAI Production" → slug "openai-production"
+client = openai.OpenAI(
+    base_url="http://localhost:8000/openai-production/v1",
+    api_key="sk-..."
+)
+```
+
+The proxy prefix for each server is shown with a copy button on the Settings page (`/settings`).
 
 Then open `http://localhost:5173` to see live traffic and use the prompt engineering tools.
 
