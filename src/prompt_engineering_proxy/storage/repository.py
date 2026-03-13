@@ -1,7 +1,7 @@
 from typing import Any
 
 from prompt_engineering_proxy.storage.database import Database
-from prompt_engineering_proxy.storage.models import ProxyRequest, Server
+from prompt_engineering_proxy.storage.models import ProxyRequest, Server, name_to_slug
 
 
 class ServerRepository:
@@ -30,6 +30,23 @@ class ServerRepository:
 
     async def list_all(self) -> list[dict[str, Any]]:
         return await self.db.fetchall("SELECT * FROM servers ORDER BY created_at DESC")
+
+    async def get_by_slug(self, slug: str) -> dict[str, Any] | None:
+        """Find a server whose name normalises to the given URL slug."""
+        servers = await self.list_all()
+        return next((s for s in servers if name_to_slug(str(s["name"])) == slug), None)
+
+    async def update(self, server_id: str, **fields: object) -> None:
+        if not fields:
+            return
+        set_clause = ", ".join(f"{k} = ?" for k in fields)
+        values: tuple[object, ...] = tuple(fields.values()) + (server_id,)
+        await self.db.execute(f"UPDATE servers SET {set_clause} WHERE id = ?", values)
+        await self.db.commit()
+
+    async def clear_default(self) -> None:
+        await self.db.execute("UPDATE servers SET is_default = 0")
+        await self.db.commit()
 
     async def delete(self, server_id: str) -> None:
         await self.db.execute("DELETE FROM servers WHERE id = ?", (server_id,))

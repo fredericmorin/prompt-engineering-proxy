@@ -60,29 +60,46 @@ def _redact_headers(headers: dict[str, str]) -> dict[str, str]:
     return result
 
 
-async def _get_upstream_url(db: Database, protocol: str) -> str | None:
-    """Return base URL of the default (or first) server matching the protocol."""
+async def _get_server(db: Database, protocol: str) -> dict[str, Any] | None:
+    """Return the default (or first) server matching the protocol."""
     repo = ServerRepository(db)
     servers = await repo.list_all()
     default = next((s for s in servers if s["protocol"] == protocol and s["is_default"]), None)
     if default:
-        return str(default["base_url"])
-    first = next((s for s in servers if s["protocol"] == protocol), None)
-    return str(first["base_url"]) if first else None
+        return default
+    return next((s for s in servers if s["protocol"] == protocol), None)
 
 
-async def proxy_request(request: Request, handler: ProtocolHandler) -> Response:
-    """Intercept an incoming LLM request, forward it upstream, capture and store the result."""
+async def proxy_request(
+    request: Request,
+    handler: ProtocolHandler,
+    server_id: str | None = None,
+    upstream_path: str | None = None,
+) -> Response:
+    """Intercept an incoming LLM request, forward it upstream, capture and store the result.
+
+    Args:
+        server_id: Route to a specific server by ID instead of the protocol default.
+        upstream_path: Override forwarded path (strips slug prefix from prefixed routes).
+    """
     db: Database = request.app.state.db
     publisher: RedisPublisher = request.app.state.redis
     http_client: httpx.AsyncClient = request.app.state.http_client
 
-    upstream_base = await _get_upstream_url(db, handler.protocol_name)
-    if not upstream_base:
-        return JSONResponse(
-            {"error": f"No upstream server configured for protocol '{handler.protocol_name}'"},
-            status_code=503,
-        )
+    if server_id is not None:
+        server: dict[str, Any] | None = await ServerRepository(db).get(server_id)
+        if server is None:
+            return JSONResponse({"error": f"Server '{server_id}' not found"}, status_code=503)
+    else:
+        server = await _get_server(db, handler.protocol_name)
+        if server is None:
+            return JSONResponse(
+                {"error": f"No upstream server configured for protocol '{handler.protocol_name}'"},
+                status_code=503,
+            )
+
+    upstream_base = str(server["base_url"])
+    captured_server_id = str(server["id"])
 
     body_bytes = await request.body()
     try:
@@ -95,15 +112,19 @@ async def proxy_request(request: Request, handler: ProtocolHandler) -> Response:
 
     forward_headers = {k: v for k, v in request.headers.items() if k.lower() not in _SKIP_REQUEST_HEADERS}
 
+    # Use provided upstream_path (stripped of slug prefix) or the raw request path
+    req_path = upstream_path or str(request.url.path)
+
     repo = RequestRepository(db)
     proxy_req = ProxyRequest(
         protocol=handler.protocol_name,
         method=request.method,
-        path=str(request.url.path),
+        path=req_path,
         request_headers=json.dumps(_redact_headers(dict(forward_headers))),
         request_body=json.dumps(body),
         is_streaming=is_streaming,
         model=model,
+        server_id=captured_server_id,
     )
     await repo.create(proxy_req)
 
@@ -112,7 +133,7 @@ async def proxy_request(request: Request, handler: ProtocolHandler) -> Response:
         ProxyEvent(type=REQUEST_STARTED, request_id=proxy_req.id),
     )
 
-    upstream_url = upstream_base.rstrip("/") + str(request.url.path)
+    upstream_url = upstream_base.rstrip("/") + req_path
     if request.url.query:
         upstream_url += "?" + request.url.query
 

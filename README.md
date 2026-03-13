@@ -102,30 +102,22 @@ An LLM proxy with an interactive web interface for capturing, inspecting, editin
 - [ ] Collapsible message thread view for conversation requests
 
 ### Prompt Engineering Interface
-- [ ] Server/provider selection (dropdown of configured upstream targets)
-- [ ] Model selection with live model list query from upstream
-- [ ] Compose new LLM request from scratch
-  - Protocol-aware form (adapts fields to selected API type)
+- [x] Server/provider selection (dropdown of configured upstream targets)
+- [x] Model selection — manual entry or live model list fetched from upstream (`GET /v1/models`)
+- [x] Compose new LLM request from scratch
   - System prompt editor
-  - Message/conversation builder with role selection
-  - Parameter controls (temperature, max_tokens, top_p, stop sequences, etc.)
-  - Tool/function definition editor (JSON)
-- [ ] Clone and edit from captured request
-  - Select any previously captured request as starting point
-  - Modify any field (messages, parameters, model, system prompt)
-  - Side-by-side diff view: original vs. edited request
-- [ ] Send edited request through the proxy
-- [ ] Response comparison
-  - View original and new response side-by-side
-  - Visual diff highlighting for text content differences
+  - Message/conversation builder with role selection (user/assistant)
+  - Parameter controls (temperature, max_tokens, top_p)
+- [x] Clone and edit from captured request — "Edit in Editor" button on request detail page
+- [x] Send composed/edited request through the proxy (stored + visible in dashboard)
+- [ ] Side-by-side diff view: original vs. edited request/response
 - [ ] Conversation forking — branch from any point in a multi-turn conversation
 - [ ] Request templates — save commonly used request configurations
 
 ### Configuration & Management
-- [ ] Server configuration UI
-  - Add/edit/remove upstream LLM server targets
-  - Per-server: base URL, default API key (optional), protocol type, display name
-- [ ] Settings persisted to SQLite
+- [x] Server configuration UI — add/edit/remove upstream LLM server targets
+  - Per-server: base URL, default API key (optional), protocol type, display name, default flag
+- [x] Settings persisted to SQLite
 - [ ] Environment variable overrides for server config
 - [ ] CORS configuration for web UI
 - [ ] Proxy port configuration
@@ -232,7 +224,7 @@ prompt-engineering-proxy/
 │           ├── requests.py          # GET/DELETE captured requests
 │           ├── servers.py           # CRUD upstream server configuration
 │           ├── models.py            # GET available models from upstream
-│           └── replay.py            # POST replay/send edited requests
+│           └── send.py              # POST send new + replay requests
 │
 ├── tests/                           # pytest tests
 │   ├── conftest.py
@@ -255,7 +247,7 @@ prompt-engineering-proxy/
 │       │   └── index.ts
 │       ├── stores/
 │       │   ├── requests.ts          # Request list + live updates
-│       │   └── servers.ts           # Server configuration
+│       │   └── servers.ts           # Server configuration CRUD
 │       ├── composables/
 │       │   ├── useSSE.ts            # SSE connection to backend
 │       │   └── useRequestDetail.ts
@@ -290,9 +282,9 @@ prompt-engineering-proxy/
 │       │       └── TimingDisplay.vue
 │       └── pages/
 │           ├── DashboardPage.vue     # Live request feed
-│           ├── RequestDetailPage.vue # Single request inspection
-│           ├── EditorPage.vue        # Prompt engineering / compose
-│           └── SettingsPage.vue      # Server configuration
+│           ├── RequestDetailPage.vue # Single request inspection + "Edit in Editor" button
+│           ├── EditorPage.vue        # Prompt editor: compose, clone, send, view response
+│           └── SettingsPage.vue      # Server configuration CRUD
 ```
 
 ## Database Schema
@@ -343,10 +335,13 @@ prompt-engineering-proxy/
 ### Proxy Endpoints (transparent pass-through)
 | Method | Path | Description |
 |---|---|---|
-| `POST` | `/v1/chat/completions` | Proxy → OpenAI Chat Completions upstream |
+| `POST` | `/v1/chat/completions` | Proxy → default openai_chat server |
+| `POST` | `/{server-slug}/v1/chat/completions` | Proxy → specific server by name slug |
 | `POST` | `/v1/responses` | Proxy → OpenAI Responses upstream |
 | `POST` | `/v1/messages` | Proxy → Anthropic Messages upstream |
 | `GET` | `/v1/models` | Proxy → upstream model listing |
+
+Each configured server gets a URL prefix derived from its name (e.g. server "OpenAI Prod" → `http://proxy/openai-prod/v1`). This lets multiple clients target different upstream servers simultaneously. The prefix is shown (with copy button) on the Settings page.
 
 ### Management API (`/api/`)
 | Method | Path | Description |
@@ -396,13 +391,13 @@ prompt-engineering-proxy/
 - [x] Live streaming response view — tokens display as they arrive
 - [x] Filtering by protocol and model
 
-### Phase 4 — Prompt Engineering
-- Server configuration CRUD (UI + API)
-- Model listing from upstream
-- Request editor — compose from scratch
-- Clone from captured request and edit
-- Send edited request and view response
-- Side-by-side response comparison / diff
+### Phase 4 — Prompt Engineering ✓ (partial)
+- [x] Server configuration CRUD (UI + API) — `GET/POST/PUT/DELETE /api/servers`
+- [x] Model listing from upstream — `GET /api/servers/:id/models`
+- [x] Request editor — compose from scratch with server/model/messages/params
+- [x] Clone from captured request and edit — "Edit in Editor" button on detail page
+- [x] Send edited request and view response — `POST /api/send`, `POST /api/requests/:id/replay`
+- [ ] Side-by-side response comparison / diff
 
 ### Phase 5 — Polish
 - Export (JSON, cURL)
@@ -479,15 +474,28 @@ DATABASE_PATH=data/proxy.db
 ```
 
 ### Usage
-Point your LLM client at the proxy:
+Point your LLM client at the proxy. Two routing modes are supported:
+
+**Default server** (routes to the `is_default` server for the protocol):
 ```python
 import openai
 
 client = openai.OpenAI(
-    base_url="http://localhost:8000/v1",  # proxy instead of api.openai.com
-    api_key="sk-..."                       # your real API key, forwarded upstream
+    base_url="http://localhost:8000/v1",
+    api_key="sk-..."
 )
 ```
+
+**Named server** (routes to a specific configured server by name slug):
+```python
+# Server named "OpenAI Production" → slug "openai-production"
+client = openai.OpenAI(
+    base_url="http://localhost:8000/openai-production/v1",
+    api_key="sk-..."
+)
+```
+
+The proxy prefix for each server is shown with a copy button on the Settings page (`/settings`).
 
 Then open `http://localhost:5173` to see live traffic and use the prompt engineering tools.
 

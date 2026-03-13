@@ -18,6 +18,11 @@ const router = createRouter({
       name: "editor",
       component: () => import("@/pages/EditorPage.vue"),
     },
+    {
+      path: "/settings",
+      name: "settings",
+      component: () => import("@/pages/SettingsPage.vue"),
+    },
   ],
 });
 
