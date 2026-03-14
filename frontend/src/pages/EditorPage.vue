@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Plus, Trash2, Send, RefreshCw, Loader2, Zap, GitFork } from "lucide-vue-next";
+import {
+  Plus,
+  Trash2,
+  Send,
+  RefreshCw,
+  Loader2,
+  Zap,
+  GitFork,
+} from "lucide-vue-next";
 import { useServersStore } from "@/stores/servers";
 import {
   listServerModels,
@@ -10,7 +18,6 @@ import {
   getRequest,
   type ModelInfo,
   type SendResponse,
-  type SendStreamingResponse,
 } from "@/lib/api";
 import StreamingView from "@/components/requests/StreamingView.vue";
 
@@ -105,7 +112,8 @@ async function unload(modelId: string) {
     // Refresh model list to update loaded status
     await fetchModels();
   } catch (e) {
-    unloadError.value = e instanceof Error ? e.message : "Failed to unload model";
+    unloadError.value =
+      e instanceof Error ? e.message : "Failed to unload model";
   } finally {
     unloadingModel.value = "";
   }
@@ -145,7 +153,11 @@ async function submit() {
   if (topP.value !== null) body.top_p = topP.value;
 
   try {
-    const result = await sendRequest(selectedServerId.value, body, streamingEnabled.value);
+    const result = await sendRequest(
+      selectedServerId.value,
+      body,
+      streamingEnabled.value,
+    );
     if ("streaming" in result && result.streaming) {
       streamingRequestId.value = result.request_id;
     } else {
@@ -245,7 +257,8 @@ onMounted(async () => {
   // Load from captured request if query param provided
   const fromId = route.query.from as string | undefined;
   const forkAtParam = route.query.fork_at as string | undefined;
-  const forkAt = forkAtParam !== undefined ? parseInt(forkAtParam, 10) : undefined;
+  const forkAt =
+    forkAtParam !== undefined ? parseInt(forkAtParam, 10) : undefined;
   if (fromId) await loadFromRequest(fromId, forkAt);
 });
 
@@ -271,7 +284,8 @@ watch(selectedServerId, () => {
         class="flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-xs text-purple-700"
       >
         <GitFork class="h-3 w-3" />
-        forked from {{ clonedFrom.slice(0, 10) }}… at turn {{ forkedAtIndex + 1 }}
+        forked from {{ clonedFrom.slice(0, 10) }}… at turn
+        {{ forkedAtIndex + 1 }}
       </span>
     </div>
 
@@ -338,10 +352,7 @@ watch(selectedServerId, () => {
               </button>
             </div>
             <!-- Loaded model actions -->
-            <div
-              v-if="models.some((m) => m.loaded)"
-              class="mt-2 space-y-1"
-            >
+            <div v-if="models.some((m) => m.loaded)" class="mt-2 space-y-1">
               <div
                 v-for="m in models.filter((m) => m.loaded)"
                 :key="m.id"
@@ -440,7 +451,12 @@ watch(selectedServerId, () => {
             </label>
             <button
               class="text-xs text-gray-400 underline hover:text-gray-700"
-              @click="router.push({ name: 'request-detail', params: { id: streamingRequestId! } })"
+              @click="
+                router.push({
+                  name: 'request-detail',
+                  params: { id: streamingRequestId! },
+                })
+              "
             >
               View in dashboard
             </button>
@@ -566,7 +582,10 @@ watch(selectedServerId, () => {
             type="checkbox"
             class="h-3.5 w-3.5 rounded border-gray-300"
           />
-          <label for="streaming-toggle" class="text-xs font-medium text-gray-600 cursor-pointer">
+          <label
+            for="streaming-toggle"
+            class="text-xs font-medium text-gray-600 cursor-pointer"
+          >
             Streaming
           </label>
         </div>

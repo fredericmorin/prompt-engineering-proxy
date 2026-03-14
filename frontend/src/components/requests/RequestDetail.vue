@@ -29,12 +29,18 @@ interface ParsedMessage {
 const conversationMessages = computed<ParsedMessage[]>(() => {
   if (!props.request.request_body) return [];
   try {
-    const body = JSON.parse(props.request.request_body) as Record<string, unknown>;
+    const body = JSON.parse(props.request.request_body) as Record<
+      string,
+      unknown
+    >;
     const msgs = body.messages;
     if (!Array.isArray(msgs)) return [];
     return (msgs as Record<string, unknown>[])
       .filter((m) => m.role !== "system")
-      .map((m) => ({ role: String(m.role ?? ""), content: String(m.content ?? "") }));
+      .map((m) => ({
+        role: String(m.role ?? ""),
+        content: String(m.content ?? ""),
+      }));
   } catch {
     return [];
   }
@@ -96,7 +102,10 @@ function forkAt(msgIndex: number) {
           :class="msg.role === 'user' ? 'bg-blue-50' : 'bg-gray-50'"
         >
           <div class="mb-1 flex items-center justify-between">
-            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">{{ msg.role }}</span>
+            <span
+              class="text-xs font-semibold text-gray-500 uppercase tracking-wide"
+              >{{ msg.role }}</span
+            >
             <button
               class="hidden group-hover:flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-purple-600 hover:bg-purple-50"
               title="Fork conversation from this turn"
@@ -106,7 +115,10 @@ function forkAt(msgIndex: number) {
               Fork from here
             </button>
           </div>
-          <pre class="whitespace-pre-wrap break-words text-xs font-sans leading-relaxed">{{ msg.content }}</pre>
+          <pre
+            class="whitespace-pre-wrap break-words text-xs font-sans leading-relaxed"
+            >{{ msg.content }}</pre
+          >
         </div>
       </div>
     </section>
