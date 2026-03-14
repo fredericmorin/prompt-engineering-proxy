@@ -94,8 +94,7 @@ class AnthropicHandler(ProtocolHandler):
 
         # Build content blocks from accumulated text
         content: list[dict[str, object]] = [
-            {"type": "text", "text": text_blocks[idx]}
-            for idx in sorted(text_blocks.keys())
+            {"type": "text", "text": text_blocks[idx]} for idx in sorted(text_blocks.keys())
         ]
         if not content:
             content = [{"type": "text", "text": ""}]
