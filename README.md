@@ -112,8 +112,10 @@ An LLM proxy with an interactive web interface for capturing, inspecting, editin
   - Parameter controls (temperature, max_tokens, top_p)
 - [x] Clone and edit from captured request — "Edit in Editor" button on request detail page
 - [x] Send composed/edited request through the proxy (stored + visible in dashboard)
+  - Streaming mode: tokens display live in the editor as they arrive (SSE, background task)
+  - Non-streaming mode: full response shown inline after completion
+- [x] Conversation forking — "Fork from here" button on each turn in multi-turn conversations; opens editor with messages truncated at that turn
 - [x] Side-by-side diff view: compare original vs. replayed request/response (`/compare?a=:id&b=:id`)
-- [ ] Conversation forking — branch from any point in a multi-turn conversation
 - [ ] Request templates — save commonly used request configurations
 
 ### Configuration & Management
@@ -401,6 +403,8 @@ Each configured server gets a URL prefix derived from its name (e.g. server "Ope
 - [x] Request editor — compose from scratch with server/model/messages/params
 - [x] Clone from captured request and edit — "Edit in Editor" button on detail page
 - [x] Send edited request and view response — `POST /api/send`, `POST /api/requests/:id/replay`
+  - Streaming toggle: live token display in editor via SSE + background task
+- [x] Conversation forking — "Fork from here" on any turn; editor opens with truncated history (`?from=:id&fork_at=:idx`)
 - [x] Side-by-side response comparison / diff — `/compare?a=:id&b=:id`
 
 ### Phase 5 — Polish

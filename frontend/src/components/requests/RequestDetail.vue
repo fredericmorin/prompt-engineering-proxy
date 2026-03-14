@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
+import { useRouter } from "vue-router";
+import { GitFork } from "lucide-vue-next";
 import { type ProxyRequestDetail, deriveStatus } from "@/lib/api";
 import StatusBadge from "@/components/common/StatusBadge.vue";
 import TimingDisplay from "@/components/common/TimingDisplay.vue";
@@ -8,6 +10,7 @@ import RequestBody from "./RequestBody.vue";
 import StreamingView from "./StreamingView.vue";
 
 const props = defineProps<{ request: ProxyRequestDetail }>();
+const router = useRouter();
 
 const status = computed(() => deriveStatus(props.request));
 const isActivelyStreaming = computed(
@@ -16,6 +19,35 @@ const isActivelyStreaming = computed(
     props.request.response_body === null &&
     !props.request.error,
 );
+
+interface ParsedMessage {
+  role: string;
+  content: string;
+}
+
+// Parse messages from request body, excluding system messages (shown separately)
+const conversationMessages = computed<ParsedMessage[]>(() => {
+  if (!props.request.request_body) return [];
+  try {
+    const body = JSON.parse(props.request.request_body) as Record<string, unknown>;
+    const msgs = body.messages;
+    if (!Array.isArray(msgs)) return [];
+    return (msgs as Record<string, unknown>[])
+      .filter((m) => m.role !== "system")
+      .map((m) => ({ role: String(m.role ?? ""), content: String(m.content ?? "") }));
+  } catch {
+    return [];
+  }
+});
+
+const isMultiTurn = computed(() => conversationMessages.value.length > 1);
+
+function forkAt(msgIndex: number) {
+  router.push({
+    name: "editor",
+    query: { from: props.request.id, fork_at: String(msgIndex) },
+  });
+}
 </script>
 
 <template>
@@ -52,6 +84,32 @@ const isActivelyStreaming = computed(
     >
       {{ request.error }}
     </div>
+
+    <!-- Conversation thread view (multi-turn) -->
+    <section v-if="isMultiTurn">
+      <h3 class="mb-2 text-sm font-semibold">Conversation</h3>
+      <div class="space-y-2">
+        <div
+          v-for="(msg, idx) in conversationMessages"
+          :key="idx"
+          class="group relative rounded-lg border border-gray-200 p-3"
+          :class="msg.role === 'user' ? 'bg-blue-50' : 'bg-gray-50'"
+        >
+          <div class="mb-1 flex items-center justify-between">
+            <span class="text-xs font-semibold text-gray-500 uppercase tracking-wide">{{ msg.role }}</span>
+            <button
+              class="hidden group-hover:flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-purple-600 hover:bg-purple-50"
+              title="Fork conversation from this turn"
+              @click="forkAt(idx)"
+            >
+              <GitFork class="h-3 w-3" />
+              Fork from here
+            </button>
+          </div>
+          <pre class="whitespace-pre-wrap break-words text-xs font-sans leading-relaxed">{{ msg.content }}</pre>
+        </div>
+      </div>
+    </section>
 
     <!-- Request section -->
     <section>
