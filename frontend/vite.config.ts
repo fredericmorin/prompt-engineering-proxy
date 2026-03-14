@@ -15,10 +15,11 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
+    host: true,
     proxy: {
-      "/api": "http://localhost:8000",
-      "/v1": "http://localhost:8000",
-      "/health": "http://localhost:8000",
+      "/api": process.env.BACKEND_URL ?? "http://localhost:8000",
+      "/v1": process.env.BACKEND_URL ?? "http://localhost:8000",
+      "/health": process.env.BACKEND_URL ?? "http://localhost:8000",
     },
   },
 });

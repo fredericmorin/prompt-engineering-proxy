@@ -19,7 +19,8 @@ LLM API proxy with web UI for capturing, inspecting, editing, and replaying LLM 
 ### Make (preferred)
 ```bash
 make setup      # Install all dependencies (backend + frontend)
-make dev        # Start Redis + backend (reload) + frontend dev server
+make dev        # Start full dev environment via Docker Compose (hot reload)
+make debug      # Start Redis + backend (reload) + frontend dev server (no Docker)
 make check      # Run all checks: lint + type-check + test
 make lint       # Ruff check + ESLint
 make typecheck  # ty type checking
@@ -71,11 +72,14 @@ npm run format
 
 ### Infrastructure
 ```bash
-# Start Redis (local dev)
-docker compose up -d
+# Start full dev environment (Redis + backend + frontend, all hot-reload)
+docker compose -f docker-compose.dev.yml up
 
-# Stop Redis
-docker compose down
+# Stop dev environment
+docker compose -f docker-compose.dev.yml down
+
+# Start Redis only (for use with make debug)
+docker compose up -d redis
 
 # Build production Docker image
 docker build -t prompt-engineering-proxy .

@@ -1,4 +1,4 @@
-.PHONY: setup setup-backend setup-frontend dev dev-backend dev-frontend dev-redis \
+.PHONY: setup setup-backend setup-frontend dev debug dev-backend dev-frontend dev-redis \
        check check-backend check-frontend lint typecheck test format build docker clean help
 
 # Default target
@@ -33,7 +33,10 @@ frontend/node_modules: frontend/package.json frontend/package-lock.json
 
 # ── Development ──────────────────────────────────────────────────────────────
 
-dev: .venv frontend/node_modules dev-redis ## Start all services for local development
+dev: ## Start full dev environment via Docker Compose (hot reload)
+	docker compose -f docker-compose.dev.yml up
+
+debug: .venv frontend/node_modules dev-redis ## Start all services locally (no Docker)
 	@echo "Starting backend and frontend..."
 	@trap 'kill 0' EXIT; \
 		uv run uvicorn prompt_engineering_proxy.main:app --reload --port 8000 & \
