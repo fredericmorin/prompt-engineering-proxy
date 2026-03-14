@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { PenTool } from "lucide-vue-next";
+import { PenTool, GitCompare } from "lucide-vue-next";
 import { getRequest, type ProxyRequestDetail } from "@/lib/api";
 import { useSSE } from "@/composables/useSSE";
 import RequestDetail from "@/components/requests/RequestDetail.vue";
@@ -53,7 +53,20 @@ watch(
       <span class="font-mono text-xs text-muted-foreground">{{
         route.params.id
       }}</span>
-      <div class="ml-auto">
+      <div class="ml-auto flex items-center gap-2">
+        <button
+          v-if="request?.parent_id"
+          class="flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium hover:bg-gray-50"
+          @click="
+            router.push({
+              name: 'compare',
+              query: { a: request!.parent_id, b: route.params.id },
+            })
+          "
+        >
+          <GitCompare class="h-3.5 w-3.5" />
+          Compare with original
+        </button>
         <button
           v-if="request"
           class="flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium hover:bg-gray-50"

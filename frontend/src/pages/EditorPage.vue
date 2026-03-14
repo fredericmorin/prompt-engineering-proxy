@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Plus, Trash2, Send, RefreshCw, Loader2 } from "lucide-vue-next";
+import { Plus, Trash2, Send, RefreshCw, Loader2, Zap } from "lucide-vue-next";
 import { useServersStore } from "@/stores/servers";
 import {
   listServerModels,
+  unloadModel,
   sendRequest,
   getRequest,
   type ModelInfo,
@@ -40,6 +41,9 @@ const sending = ref(false);
 const sendError = ref("");
 const response = ref<SendResponse | null>(null);
 const clonedFrom = ref<string | null>(null);
+
+const unloadingModel = ref("");
+const unloadError = ref("");
 
 // ── Computed ──────────────────────────────────────────────────────────────
 
@@ -84,6 +88,21 @@ async function fetchModels() {
       e instanceof Error ? e.message : "Failed to fetch models";
   } finally {
     loadingModels.value = false;
+  }
+}
+
+async function unload(modelId: string) {
+  if (!selectedServerId.value) return;
+  unloadingModel.value = modelId;
+  unloadError.value = "";
+  try {
+    await unloadModel(selectedServerId.value, modelId);
+    // Refresh model list to update loaded status
+    await fetchModels();
+  } catch (e) {
+    unloadError.value = e instanceof Error ? e.message : "Failed to unload model";
+  } finally {
+    unloadingModel.value = "";
   }
 }
 
@@ -272,7 +291,7 @@ watch(selectedServerId, () => {
               >
                 <option value="" disabled>Select model…</option>
                 <option v-for="m in models" :key="m.id" :value="m.id">
-                  {{ m.id }}
+                  {{ m.loaded ? "⚡ " : "" }}{{ m.id }}
                 </option>
               </select>
               <button
@@ -285,8 +304,38 @@ watch(selectedServerId, () => {
                 <RefreshCw v-else class="h-4 w-4" />
               </button>
             </div>
+            <!-- Loaded model actions -->
+            <div
+              v-if="models.some((m) => m.loaded)"
+              class="mt-2 space-y-1"
+            >
+              <div
+                v-for="m in models.filter((m) => m.loaded)"
+                :key="m.id"
+                class="flex items-center gap-1.5 text-xs"
+              >
+                <span class="h-1.5 w-1.5 rounded-full bg-green-500 shrink-0" />
+                <span class="flex-1 truncate text-gray-600">{{ m.id }}</span>
+                <button
+                  class="flex items-center gap-0.5 rounded px-1.5 py-0.5 text-gray-400 hover:bg-red-50 hover:text-red-600 disabled:opacity-40"
+                  :disabled="unloadingModel === m.id"
+                  title="Unload model from memory"
+                  @click="unload(m.id)"
+                >
+                  <Loader2
+                    v-if="unloadingModel === m.id"
+                    class="h-3 w-3 animate-spin"
+                  />
+                  <Zap v-else class="h-3 w-3" />
+                  {{ unloadingModel === m.id ? "…" : "Unload" }}
+                </button>
+              </div>
+            </div>
             <div v-if="modelsError" class="mt-1 text-xs text-red-500">
               {{ modelsError }}
+            </div>
+            <div v-if="unloadError" class="mt-1 text-xs text-red-500">
+              {{ unloadError }}
             </div>
           </div>
         </div>
@@ -359,6 +408,18 @@ watch(selectedServerId, () => {
                 {{ response.prompt_tokens }}+{{ response.completion_tokens }}
                 tokens
               </span>
+              <button
+                v-if="response?.parent_id"
+                class="underline hover:text-gray-700"
+                @click="
+                  router.push({
+                    name: 'compare',
+                    query: { a: response!.parent_id, b: response!.request_id },
+                  })
+                "
+              >
+                Compare with original
+              </button>
               <button
                 v-if="response"
                 class="underline hover:text-gray-700"
