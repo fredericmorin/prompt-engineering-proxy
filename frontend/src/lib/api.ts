@@ -22,6 +22,7 @@ export interface Server {
   base_url: string;
   protocol: string;
   api_key: string | null;
+  proxy_slug: string | null;
   is_default: boolean;
   created_at: string;
 }
@@ -31,6 +32,7 @@ export interface ServerCreate {
   base_url: string;
   protocol: string;
   api_key?: string;
+  proxy_slug?: string | null;
   is_default?: boolean;
 }
 
@@ -39,6 +41,7 @@ export interface ServerUpdate {
   base_url?: string;
   protocol?: string;
   api_key?: string;
+  proxy_slug?: string | null;
   is_default?: boolean;
 }
 

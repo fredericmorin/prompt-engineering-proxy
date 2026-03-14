@@ -1,4 +1,4 @@
-"""Proxy route registration for /v1/* and /{server-slug}/v1/* endpoints."""
+"""Proxy route registration for /{server-slug}/v1/* and /{server-slug}/api/* endpoints."""
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, Response
@@ -18,7 +18,6 @@ _ollama_chat = OllamaChatHandler()
 _ollama_generate = OllamaGenerateHandler()
 
 # Maps the LLM endpoint path (after /v1/) to its protocol handler.
-# Extend this dict as new protocol handlers are implemented.
 _HANDLER_FOR_PATH: dict[str, ProtocolHandler] = {
     "chat/completions": _openai_chat,
 }
@@ -28,12 +27,6 @@ _OLLAMA_HANDLER_FOR_PATH: dict[str, ProtocolHandler] = {
     "chat": _ollama_chat,
     "generate": _ollama_generate,
 }
-
-
-@router.post("/v1/chat/completions")
-async def chat_completions(request: Request) -> Response:
-    """Proxy POST /v1/chat/completions → default upstream server for openai_chat protocol."""
-    return await proxy_request(request, _openai_chat)
 
 
 @router.post("/{server_slug}/v1/{path:path}")
