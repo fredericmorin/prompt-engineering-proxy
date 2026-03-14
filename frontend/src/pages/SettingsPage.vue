@@ -180,12 +180,22 @@ onMounted(() => store.fetchServers());
               <code
                 class="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600 truncate max-w-xs"
               >
-                {{ proxyPrefix(server.name, server.protocol, server.proxy_slug) }}
+                {{
+                  proxyPrefix(server.name, server.protocol, server.proxy_slug)
+                }}
               </code>
               <button
                 class="rounded p-0.5 text-gray-400 hover:text-gray-600"
                 title="Copy proxy base URL"
-                @click="copyToClipboard(proxyPrefix(server.name, server.protocol, server.proxy_slug))"
+                @click="
+                  copyToClipboard(
+                    proxyPrefix(
+                      server.name,
+                      server.protocol,
+                      server.proxy_slug,
+                    ),
+                  )
+                "
               >
                 <Copy class="h-3 w-3" />
               </button>
@@ -275,7 +285,9 @@ onMounted(() => store.fetchServers());
           <div>
             <label class="mb-1 block text-sm font-medium text-gray-700">
               Proxy Slug
-              <span class="font-normal text-gray-400">(optional — overrides auto-derived slug)</span>
+              <span class="font-normal text-gray-400"
+                >(optional — overrides auto-derived slug)</span
+              >
             </label>
             <input
               v-model="form.proxy_slug"
@@ -284,7 +296,10 @@ onMounted(() => store.fetchServers());
               pattern="[a-z0-9][a-z0-9\-]*"
             />
             <div class="mt-1 text-xs text-gray-400">
-              Proxy URL: {{ proxyPrefix(form.name, form.protocol, form.proxy_slug || null) }}
+              Proxy URL:
+              {{
+                proxyPrefix(form.name, form.protocol, form.proxy_slug || null)
+              }}
             </div>
           </div>
           <div>

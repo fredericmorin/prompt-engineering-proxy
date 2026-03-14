@@ -64,7 +64,11 @@ async def list_server_models(request: Request, server_id: str) -> JSONResponse:
             # Ollama format: {"models": [{"name": "...", "model": "...", ...}]}
             raw_models = data.get("models", []) if isinstance(data, dict) else []
             models: list[dict[str, object]] = [
-                {**m, "id": str(m.get("name", m.get("model", ""))), "loaded": str(m.get("name", m.get("model", ""))) in loaded_names}
+                {
+                    **m,
+                    "id": str(m.get("name", m.get("model", ""))),
+                    "loaded": str(m.get("name", m.get("model", ""))) in loaded_names,
+                }
                 for m in raw_models
                 if isinstance(m, dict)
             ]
@@ -79,10 +83,7 @@ async def list_server_models(request: Request, server_id: str) -> JSONResponse:
             raw = data.get("data", data) if isinstance(data, dict) else data
             if loaded_names:
                 models = [
-                    {**m, "loaded": str(m.get("id", "")) in loaded_names}
-                    if isinstance(m, dict)
-                    else m
-                    for m in raw
+                    {**m, "loaded": str(m.get("id", "")) in loaded_names} if isinstance(m, dict) else m for m in raw
                 ]
             else:
                 models = raw
