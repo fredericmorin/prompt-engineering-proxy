@@ -11,8 +11,10 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from prompt_engineering_proxy.proxy.protocols.base import ProtocolHandler
+from prompt_engineering_proxy.proxy.protocols.ollama_chat import OllamaChatHandler
+from prompt_engineering_proxy.proxy.protocols.ollama_generate import OllamaGenerateHandler
 from prompt_engineering_proxy.proxy.protocols.openai_chat import OpenAIChatHandler
-from prompt_engineering_proxy.proxy.streaming import tee_sse_stream
+from prompt_engineering_proxy.proxy.streaming import tee_ndjson_stream, tee_sse_stream
 from prompt_engineering_proxy.realtime.events import (
     CHANNEL_REQUESTS,
     REQUEST_COMPLETED,
@@ -31,10 +33,14 @@ _PROTOCOL_PATHS: dict[str, str] = {
     "openai_chat": "/v1/chat/completions",
     "openai_responses": "/v1/responses",
     "anthropic": "/v1/messages",
+    "ollama_chat": "/api/chat",
+    "ollama_generate": "/api/generate",
 }
 
 _PROTOCOL_HANDLERS: dict[str, ProtocolHandler] = {
     "openai_chat": OpenAIChatHandler(),
+    "ollama_chat": OllamaChatHandler(),
+    "ollama_generate": OllamaGenerateHandler(),
 }
 
 
@@ -139,8 +145,10 @@ async def _execute_request(
             )
             raise HTTPException(status_code=502, detail=f"Upstream request failed: {exc}") from exc
 
+        _stream_fn = tee_ndjson_stream if handler.streaming_format == "ndjson" else tee_sse_stream
+
         async def _drain_stream() -> None:
-            async for _ in tee_sse_stream(
+            async for _ in _stream_fn(
                 upstream_response=upstream_response,
                 publisher=publisher,
                 request_id=proxy_req.id,

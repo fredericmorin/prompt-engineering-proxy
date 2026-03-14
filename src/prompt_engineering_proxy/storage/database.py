@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS servers (
     base_url TEXT NOT NULL,
     protocol TEXT NOT NULL,
     api_key TEXT,
+    proxy_slug TEXT,
     is_default BOOLEAN NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL
 );
@@ -68,8 +69,18 @@ class Database:
         if not self._conn:
             raise RuntimeError("Database not connected")
         await self._conn.executescript(SCHEMA_SQL)
+        await self._migrate(self._conn)
         await self._conn.commit()
         logger.info("Database schema initialized")
+
+    @staticmethod
+    async def _migrate(conn: aiosqlite.Connection) -> None:
+        """Apply incremental schema migrations for columns added after initial schema."""
+        cursor = await conn.execute("PRAGMA table_info(servers)")
+        existing = {row[1] for row in await cursor.fetchall()}
+        if "proxy_slug" not in existing:
+            await conn.execute("ALTER TABLE servers ADD COLUMN proxy_slug TEXT")
+            logger.info("Migration: added proxy_slug column to servers")
 
     async def close(self) -> None:
         if self._conn:

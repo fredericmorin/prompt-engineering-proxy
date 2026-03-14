@@ -10,14 +10,15 @@ class ServerRepository:
 
     async def create(self, server: Server) -> Server:
         await self.db.execute(
-            """INSERT INTO servers (id, name, base_url, protocol, api_key, is_default, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            """INSERT INTO servers (id, name, base_url, protocol, api_key, proxy_slug, is_default, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 server.id,
                 server.name,
                 server.base_url,
                 server.protocol,
                 server.api_key,
+                server.proxy_slug,
                 server.is_default,
                 server.created_at,
             ),
@@ -32,8 +33,13 @@ class ServerRepository:
         return await self.db.fetchall("SELECT * FROM servers ORDER BY created_at DESC")
 
     async def get_by_slug(self, slug: str) -> dict[str, Any] | None:
-        """Find a server whose name normalises to the given URL slug."""
+        """Find a server by proxy slug — checks configured proxy_slug first, then name-derived slug."""
         servers = await self.list_all()
+        # Prefer explicit proxy_slug match
+        explicit = next((s for s in servers if s.get("proxy_slug") == slug), None)
+        if explicit:
+            return explicit
+        # Fall back to name-derived slug
         return next((s for s in servers if name_to_slug(str(s["name"])) == slug), None)
 
     async def update(self, server_id: str, **fields: object) -> None:

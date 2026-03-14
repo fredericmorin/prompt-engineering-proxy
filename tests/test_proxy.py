@@ -131,7 +131,7 @@ async def test_non_streaming_proxy_success(
     app.state.http_client.request = AsyncMock(return_value=httpx.Response(200, json=FAKE_CHAT_RESPONSE))
 
     response = await client.post(
-        "/v1/chat/completions",
+        "/test-openai/v1/chat/completions",
         json={"model": "gpt-4o", "messages": [{"role": "user", "content": "Hi"}]},
         headers={"Authorization": "Bearer sk-test1234567890abcdef"},
     )
@@ -151,7 +151,7 @@ async def test_non_streaming_proxy_stores_request(
     app.state.http_client.request = AsyncMock(return_value=httpx.Response(200, json=FAKE_CHAT_RESPONSE))
 
     await client.post(
-        "/v1/chat/completions",
+        "/test-openai/v1/chat/completions",
         json={"model": "gpt-4o", "messages": [{"role": "user", "content": "Hello"}]},
         headers={"Authorization": "Bearer sk-test1234567890abcdef"},
     )
@@ -178,7 +178,7 @@ async def test_non_streaming_proxy_redacts_api_key(
     app.state.http_client.request = AsyncMock(return_value=httpx.Response(200, json=FAKE_CHAT_RESPONSE))
 
     await client.post(
-        "/v1/chat/completions",
+        "/test-openai/v1/chat/completions",
         json={"model": "gpt-4o", "messages": [{"role": "user", "content": "Hi"}]},
         headers={"Authorization": "Bearer sk-verysecretkey0000"},
     )
@@ -195,17 +195,17 @@ async def test_non_streaming_proxy_redacts_api_key(
 
 
 @pytest.mark.asyncio
-async def test_non_streaming_proxy_no_server_returns_503(
+async def test_non_streaming_proxy_unknown_slug_returns_404(
     app_client: tuple[AsyncClient, Database, FastAPI],
 ) -> None:
     client, _, _app = app_client
     # No server configured
 
     response = await client.post(
-        "/v1/chat/completions",
+        "/no-such-server/v1/chat/completions",
         json={"model": "gpt-4o", "messages": [{"role": "user", "content": "Hi"}]},
     )
-    assert response.status_code == 503
+    assert response.status_code == 404
 
 
 @pytest.mark.asyncio
@@ -219,7 +219,7 @@ async def test_non_streaming_proxy_upstream_error_returns_502(
     app.state.http_client.request = AsyncMock(side_effect=httpx.ConnectError("connection refused", request=fake_req))
 
     response = await client.post(
-        "/v1/chat/completions",
+        "/test-openai/v1/chat/completions",
         json={"model": "gpt-4o", "messages": [{"role": "user", "content": "Hi"}]},
     )
 
@@ -272,7 +272,7 @@ async def test_streaming_proxy_returns_sse(
     app.state.http_client.send = AsyncMock(return_value=mock_resp)
 
     response = await client.post(
-        "/v1/chat/completions",
+        "/test-openai/v1/chat/completions",
         json={"model": "gpt-4o", "messages": [{"role": "user", "content": "Hi"}], "stream": True},
         headers={"Authorization": "Bearer sk-test1234567890abcdef"},
     )
@@ -294,7 +294,7 @@ async def test_streaming_proxy_stores_assembled_response(
     app.state.http_client.send = AsyncMock(return_value=mock_resp)
 
     await client.post(
-        "/v1/chat/completions",
+        "/test-openai/v1/chat/completions",
         json={"model": "gpt-4o", "messages": [{"role": "user", "content": "Hi"}], "stream": True},
     )
 

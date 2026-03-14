@@ -10,7 +10,7 @@ from fastapi import Request
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
 from prompt_engineering_proxy.proxy.protocols.base import ProtocolHandler
-from prompt_engineering_proxy.proxy.streaming import tee_sse_stream
+from prompt_engineering_proxy.proxy.streaming import tee_ndjson_stream, tee_sse_stream
 from prompt_engineering_proxy.realtime.events import (
     CHANNEL_REQUESTS,
     REQUEST_ERROR,
@@ -256,18 +256,30 @@ async def _handle_streaming(
         logger.error("Upstream stream request failed for %s: %s", request_id, exc)
         return JSONResponse({"error": f"Upstream request failed: {exc}"}, status_code=502)
 
-    stream = tee_sse_stream(
-        upstream_response=upstream_response,
-        publisher=publisher,
-        request_id=request_id,
-        repo=repo,
-        handler=handler,
-        start_time=start_time,
-    )
+    if handler.streaming_format == "ndjson":
+        stream = tee_ndjson_stream(
+            upstream_response=upstream_response,
+            publisher=publisher,
+            request_id=request_id,
+            repo=repo,
+            handler=handler,
+            start_time=start_time,
+        )
+        media_type = upstream_response.headers.get("content-type", "application/x-ndjson")
+    else:
+        stream = tee_sse_stream(
+            upstream_response=upstream_response,
+            publisher=publisher,
+            request_id=request_id,
+            repo=repo,
+            handler=handler,
+            start_time=start_time,
+        )
+        media_type = "text/event-stream"
 
     return StreamingResponse(
         stream,
         status_code=upstream_response.status_code,
         headers={k: v for k, v in upstream_response.headers.items() if k.lower() not in _HOP_BY_HOP},
-        media_type="text/event-stream",
+        media_type=media_type,
     )

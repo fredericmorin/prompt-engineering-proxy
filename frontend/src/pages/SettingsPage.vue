@@ -13,8 +13,14 @@ function nameToSlug(name: string): string {
   return slug || "server";
 }
 
-function proxyPrefix(name: string): string {
-  return `${window.location.origin}/${nameToSlug(name)}/v1`;
+function proxyPrefix(
+  name: string,
+  protocol: string,
+  customSlug: string | null,
+): string {
+  const slug = customSlug?.trim() || nameToSlug(name);
+  const apiBase = protocol.startsWith("ollama") ? "api" : "v1";
+  return `${window.location.origin}/${slug}/${apiBase}`;
 }
 
 async function copyToClipboard(text: string) {
@@ -27,6 +33,8 @@ const PROTOCOLS = [
   { value: "openai_chat", label: "OpenAI Chat Completions" },
   { value: "openai_responses", label: "OpenAI Responses" },
   { value: "anthropic", label: "Anthropic Messages" },
+  { value: "ollama_chat", label: "Ollama Chat (/api/chat)" },
+  { value: "ollama_generate", label: "Ollama Generate (/api/generate)" },
 ];
 
 // Form state
@@ -35,11 +43,12 @@ const editingId = ref<string | null>(null);
 const saving = ref(false);
 const errorMsg = ref("");
 
-const form = ref<ServerCreate>({
+const form = ref<ServerCreate & { proxy_slug: string }>({
   name: "",
   base_url: "",
   protocol: "openai_chat",
   api_key: "",
+  proxy_slug: "",
   is_default: false,
 });
 
@@ -50,6 +59,7 @@ function openCreate() {
     base_url: "",
     protocol: "openai_chat",
     api_key: "",
+    proxy_slug: "",
     is_default: false,
   };
   errorMsg.value = "";
@@ -63,6 +73,7 @@ function openEdit(server: (typeof store.servers)[0]) {
     base_url: server.base_url,
     protocol: server.protocol,
     api_key: "",
+    proxy_slug: server.proxy_slug ?? "",
     is_default: server.is_default,
   };
   errorMsg.value = "";
@@ -78,6 +89,7 @@ async function saveForm() {
         name: form.value.name,
         base_url: form.value.base_url,
         protocol: form.value.protocol,
+        proxy_slug: form.value.proxy_slug || null,
         is_default: form.value.is_default,
       };
       if (form.value.api_key) update.api_key = form.value.api_key;
@@ -85,6 +97,7 @@ async function saveForm() {
     } else {
       const create: ServerCreate = { ...form.value };
       if (!create.api_key) delete create.api_key;
+      if (!create.proxy_slug) delete create.proxy_slug;
       await store.addServer(create);
     }
     showForm.value = false;
@@ -167,12 +180,22 @@ onMounted(() => store.fetchServers());
               <code
                 class="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600 truncate max-w-xs"
               >
-                {{ proxyPrefix(server.name) }}
+                {{
+                  proxyPrefix(server.name, server.protocol, server.proxy_slug)
+                }}
               </code>
               <button
                 class="rounded p-0.5 text-gray-400 hover:text-gray-600"
                 title="Copy proxy base URL"
-                @click="copyToClipboard(proxyPrefix(server.name))"
+                @click="
+                  copyToClipboard(
+                    proxyPrefix(
+                      server.name,
+                      server.protocol,
+                      server.proxy_slug,
+                    ),
+                  )
+                "
               >
                 <Copy class="h-3 w-3" />
               </button>
@@ -258,6 +281,26 @@ onMounted(() => store.fetchServers());
                 {{ p.label }}
               </option>
             </select>
+          </div>
+          <div>
+            <label class="mb-1 block text-sm font-medium text-gray-700">
+              Proxy Slug
+              <span class="font-normal text-gray-400"
+                >(optional — overrides auto-derived slug)</span
+              >
+            </label>
+            <input
+              v-model="form.proxy_slug"
+              class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
+              :placeholder="nameToSlug(form.name) || 'my-server'"
+              pattern="[a-z0-9][a-z0-9\-]*"
+            />
+            <div class="mt-1 text-xs text-gray-400">
+              Proxy URL:
+              {{
+                proxyPrefix(form.name, form.protocol, form.proxy_slug || null)
+              }}
+            </div>
           </div>
           <div>
             <label class="mb-1 block text-sm font-medium text-gray-700">

@@ -23,8 +23,9 @@ class Server(BaseModel):
     id: str = Field(default_factory=new_ulid)
     name: str
     base_url: str
-    protocol: str  # "openai_chat", "openai_responses", "anthropic"
+    protocol: str  # "openai_chat", "openai_responses", "anthropic", "ollama_chat", "ollama_generate"
     api_key: str | None = None
+    proxy_slug: str | None = None  # custom URL prefix slug; falls back to name_to_slug(name) if None
     is_default: bool = False
     created_at: str = Field(default_factory=now_iso)
 

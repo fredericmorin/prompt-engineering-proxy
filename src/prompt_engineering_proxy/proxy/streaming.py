@@ -22,6 +22,69 @@ from prompt_engineering_proxy.storage.repository import RequestRepository
 logger = logging.getLogger(__name__)
 
 
+async def tee_ndjson_stream(
+    upstream_response: httpx.Response,
+    publisher: RedisPublisher,
+    request_id: str,
+    repo: RequestRepository,
+    handler: ProtocolHandler,
+    start_time: float,
+) -> AsyncGenerator[bytes, None]:
+    """Async generator that tees an NDJSON stream (used by Ollama):
+    - Yields raw bytes to the client (transparent pass-through)
+    - Parses each newline-delimited JSON chunk and publishes to Redis
+    - On completion, assembles the full response and stores it in SQLite
+    """
+    buffer = ""
+    data_lines: list[str] = []
+    ttfb_ms: list[int | None] = [None]
+
+    try:
+        async for raw_chunk in upstream_response.aiter_bytes():
+            if ttfb_ms[0] is None and raw_chunk:
+                ttfb_ms[0] = int((time.monotonic() - start_time) * 1000)
+
+            yield raw_chunk
+
+            buffer += raw_chunk.decode("utf-8", errors="replace")
+
+            # Process complete newline-delimited JSON lines
+            while "\n" in buffer:
+                line, buffer = buffer.split("\n", 1)
+                line = line.strip()
+                if not line:
+                    continue
+                data_lines.append(line)
+                try:
+                    await publisher.publish(
+                        f"{CHANNEL_STREAM_PREFIX}{request_id}",
+                        ProxyEvent(
+                            type=STREAM_CHUNK,
+                            request_id=request_id,
+                            data={"chunk": line},
+                        ),
+                    )
+                except Exception:
+                    logger.debug("Failed to publish NDJSON chunk for request %s", request_id)
+
+    except Exception as exc:
+        logger.error("NDJSON stream error for request %s: %s", request_id, exc)
+        raise
+    finally:
+        await upstream_response.aclose()
+        await _finalize_stream(
+            repo=repo,
+            publisher=publisher,
+            request_id=request_id,
+            handler=handler,
+            status_code=upstream_response.status_code,
+            response_headers=dict(upstream_response.headers),
+            data_lines=data_lines,
+            start_time=start_time,
+            ttfb_ms=ttfb_ms[0],
+        )
+
+
 async def tee_sse_stream(
     upstream_response: httpx.Response,
     publisher: RedisPublisher,

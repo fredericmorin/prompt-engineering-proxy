@@ -6,6 +6,11 @@ class ProtocolHandler(ABC):
     @abstractmethod
     def protocol_name(self) -> str: ...
 
+    @property
+    def streaming_format(self) -> str:
+        """Return the streaming format: 'sse' (Server-Sent Events) or 'ndjson' (newline-delimited JSON)."""
+        return "sse"
+
     @abstractmethod
     def extract_model(self, body: dict[str, object]) -> str | None: ...
 
@@ -16,5 +21,5 @@ class ProtocolHandler(ABC):
 
     @abstractmethod
     def assemble_streaming_response(self, chunks: list[dict[str, object]]) -> dict[str, object]:
-        """Assemble a full response dict from parsed SSE delta chunks."""
+        """Assemble a full response dict from parsed stream chunks."""
         ...

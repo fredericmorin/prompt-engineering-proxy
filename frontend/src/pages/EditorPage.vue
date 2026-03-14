@@ -36,6 +36,7 @@ const serversStore = useServersStore();
 
 const selectedServerId = ref("");
 const model = ref("");
+const prompt = ref("");
 const messages = ref<Message[]>([{ role: "user", content: "" }]);
 const temperature = ref(1.0);
 const maxTokens = ref<number | null>(null);
@@ -58,6 +59,14 @@ const unloadingModel = ref("");
 const unloadError = ref("");
 
 // ── Computed ──────────────────────────────────────────────────────────────
+
+const selectedServer = computed(() =>
+  serversStore.servers.find((s) => s.id === selectedServerId.value),
+);
+
+const isOllamaGenerate = computed(
+  () => selectedServer.value?.protocol === "ollama_generate",
+);
 
 const responseText = computed(() => {
   if (!response.value) return null;
@@ -83,6 +92,11 @@ const responseText = computed(() => {
       .map((c) => (c.type === "text" ? String(c.text ?? "") : ""))
       .join("");
   }
+  // Ollama Chat format: message.content
+  const ollamaMsg = body.message as Record<string, unknown> | undefined;
+  if (ollamaMsg?.content !== undefined) return String(ollamaMsg.content);
+  // Ollama Generate format: response (string)
+  if (typeof body.response === "string") return body.response;
   return JSON.stringify(body, null, 2);
 });
 
@@ -144,10 +158,13 @@ async function submit() {
   response.value = null;
   streamingRequestId.value = null;
 
-  const body: Record<string, unknown> = {
-    model: model.value.trim(),
-    messages: buildMessages(),
-  };
+  const body: Record<string, unknown> = { model: model.value.trim() };
+  if (isOllamaGenerate.value) {
+    body.prompt = prompt.value;
+    if (systemPrompt.value.trim()) body.system = systemPrompt.value.trim();
+  } else {
+    body.messages = buildMessages();
+  }
   if (temperature.value !== 1.0) body.temperature = temperature.value;
   if (maxTokens.value !== null) body.max_tokens = maxTokens.value;
   if (topP.value !== null) body.top_p = topP.value;
@@ -202,41 +219,48 @@ async function loadFromRequest(id: string, forkAt?: number) {
     const body = JSON.parse(req.request_body) as Record<string, unknown>;
     if (typeof body.model === "string") model.value = body.model;
 
-    const rawMessages = body.messages;
-    if (Array.isArray(rawMessages)) {
-      const sys = rawMessages.find(
-        (m): m is Record<string, string> =>
-          typeof m === "object" && m !== null && m.role === "system",
-      );
-      if (sys?.content) systemPrompt.value = String(sys.content);
-      let nonSystemMessages = rawMessages
-        .filter(
+    // Try to match server first so isOllamaGenerate computed is correct
+    if (req.server_id) selectedServerId.value = req.server_id;
+
+    if (req.protocol === "ollama_generate") {
+      // Ollama generate uses prompt field
+      if (typeof body.prompt === "string") prompt.value = body.prompt;
+      if (typeof body.system === "string") systemPrompt.value = body.system;
+    } else {
+      // Chat-style (OpenAI, Ollama chat, Anthropic): uses messages array
+      const rawMessages = body.messages;
+      if (Array.isArray(rawMessages)) {
+        const sys = rawMessages.find(
           (m): m is Record<string, string> =>
-            typeof m === "object" && m !== null && m.role !== "system",
-        )
-        .map((m) => ({
-          role: m.role as Message["role"],
-          content: String(m.content ?? ""),
-        }));
+            typeof m === "object" && m !== null && m.role === "system",
+        );
+        if (sys?.content) systemPrompt.value = String(sys.content);
+        let nonSystemMessages = rawMessages
+          .filter(
+            (m): m is Record<string, string> =>
+              typeof m === "object" && m !== null && m.role !== "system",
+          )
+          .map((m) => ({
+            role: m.role as Message["role"],
+            content: String(m.content ?? ""),
+          }));
 
-      // Fork: keep only messages up to forkAt index (inclusive)
-      if (forkAt !== undefined && forkAt >= 0) {
-        nonSystemMessages = nonSystemMessages.slice(0, forkAt + 1);
-        forkedAtIndex.value = forkAt;
+        // Fork: keep only messages up to forkAt index (inclusive)
+        if (forkAt !== undefined && forkAt >= 0) {
+          nonSystemMessages = nonSystemMessages.slice(0, forkAt + 1);
+          forkedAtIndex.value = forkAt;
+        }
+
+        messages.value = nonSystemMessages;
+        if (messages.value.length === 0)
+          messages.value = [{ role: "user", content: "" }];
       }
-
-      messages.value = nonSystemMessages;
-      if (messages.value.length === 0)
-        messages.value = [{ role: "user", content: "" }];
     }
 
     if (typeof body.temperature === "number")
       temperature.value = body.temperature;
     if (typeof body.max_tokens === "number") maxTokens.value = body.max_tokens;
     if (typeof body.top_p === "number") topP.value = body.top_p;
-
-    // Try to match server
-    if (req.server_id) selectedServerId.value = req.server_id;
 
     clonedFrom.value = id;
   } catch {
@@ -384,63 +408,91 @@ watch(selectedServerId, () => {
           </div>
         </div>
 
-        <!-- System prompt -->
-        <div>
-          <label class="mb-1 block text-xs font-medium text-gray-600"
-            >System Prompt</label
-          >
-          <textarea
-            v-model="systemPrompt"
-            rows="3"
-            class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400 resize-none"
-            placeholder="You are a helpful assistant."
-          />
-        </div>
-
-        <!-- Messages -->
-        <div class="space-y-3">
-          <div class="flex items-center justify-between">
-            <label class="text-xs font-medium text-gray-600">Messages</label>
-            <button
-              class="flex items-center gap-1 rounded-md border border-gray-300 px-2 py-1 text-xs hover:bg-gray-50"
-              @click="addMessage"
+        <!-- Ollama Generate: single prompt input -->
+        <template v-if="isOllamaGenerate">
+          <div>
+            <label class="mb-1 block text-xs font-medium text-gray-600"
+              >System</label
             >
-              <Plus class="h-3 w-3" /> Add message
-            </button>
-          </div>
-          <div
-            v-for="(msg, idx) in messages"
-            :key="idx"
-            class="rounded-lg border border-gray-200 bg-gray-50 p-3"
-          >
-            <div class="mb-2 flex items-center gap-2">
-              <select
-                v-model="msg.role"
-                class="rounded border border-gray-300 bg-white px-2 py-1 text-xs focus:outline-none"
-              >
-                <option value="user">user</option>
-                <option value="assistant">assistant</option>
-              </select>
-              <button
-                v-if="messages.length > 1"
-                class="ml-auto rounded p-1 text-gray-400 hover:text-red-500 hover:bg-red-50"
-                @click="removeMessage(idx)"
-              >
-                <Trash2 class="h-3.5 w-3.5" />
-              </button>
-            </div>
             <textarea
-              v-model="msg.content"
-              rows="3"
-              class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400 resize-y"
-              :placeholder="
-                msg.role === 'user'
-                  ? 'Enter user message…'
-                  : 'Enter assistant message…'
-              "
+              v-model="systemPrompt"
+              rows="2"
+              class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400 resize-none"
+              placeholder="Optional system prompt…"
             />
           </div>
-        </div>
+          <div>
+            <label class="mb-1 block text-xs font-medium text-gray-600"
+              >Prompt</label
+            >
+            <textarea
+              v-model="prompt"
+              rows="6"
+              class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400 resize-y"
+              placeholder="Enter your prompt…"
+            />
+          </div>
+        </template>
+
+        <!-- Chat-style: system prompt + messages -->
+        <template v-else>
+          <div>
+            <label class="mb-1 block text-xs font-medium text-gray-600"
+              >System Prompt</label
+            >
+            <textarea
+              v-model="systemPrompt"
+              rows="3"
+              class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400 resize-none"
+              placeholder="You are a helpful assistant."
+            />
+          </div>
+
+          <!-- Messages -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <label class="text-xs font-medium text-gray-600">Messages</label>
+              <button
+                class="flex items-center gap-1 rounded-md border border-gray-300 px-2 py-1 text-xs hover:bg-gray-50"
+                @click="addMessage"
+              >
+                <Plus class="h-3 w-3" /> Add message
+              </button>
+            </div>
+            <div
+              v-for="(msg, idx) in messages"
+              :key="idx"
+              class="rounded-lg border border-gray-200 bg-gray-50 p-3"
+            >
+              <div class="mb-2 flex items-center gap-2">
+                <select
+                  v-model="msg.role"
+                  class="rounded border border-gray-300 bg-white px-2 py-1 text-xs focus:outline-none"
+                >
+                  <option value="user">user</option>
+                  <option value="assistant">assistant</option>
+                </select>
+                <button
+                  v-if="messages.length > 1"
+                  class="ml-auto rounded p-1 text-gray-400 hover:text-red-500 hover:bg-red-50"
+                  @click="removeMessage(idx)"
+                >
+                  <Trash2 class="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <textarea
+                v-model="msg.content"
+                rows="3"
+                class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400 resize-y"
+                :placeholder="
+                  msg.role === 'user'
+                    ? 'Enter user message…'
+                    : 'Enter assistant message…'
+                "
+              />
+            </div>
+          </div>
+        </template>
 
         <!-- Live streaming response -->
         <div v-if="streamingRequestId" class="mt-2">
