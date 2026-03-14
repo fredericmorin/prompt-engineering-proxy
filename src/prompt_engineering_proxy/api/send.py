@@ -156,6 +156,7 @@ async def _execute_request(
     return JSONResponse(
         content={
             "request_id": proxy_req.id,
+            "parent_id": parent_id,
             "status": resp.status_code,
             "body": response_body,
             "duration_ms": duration_ms,

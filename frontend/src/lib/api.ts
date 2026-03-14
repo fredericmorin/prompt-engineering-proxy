@@ -88,6 +88,7 @@ export interface ModelInfo {
   id: string;
   object?: string;
   owned_by?: string;
+  loaded?: boolean;
 }
 
 export async function listServerModels(serverId: string): Promise<ModelInfo[]> {
@@ -98,10 +99,23 @@ export async function listServerModels(serverId: string): Promise<ModelInfo[]> {
   return (data.models ?? []) as ModelInfo[];
 }
 
+export async function unloadModel(
+  serverId: string,
+  modelName: string,
+): Promise<void> {
+  const response = await fetch(
+    `${BASE_URL}/api/servers/${serverId}/models/${encodeURIComponent(modelName)}`,
+    { method: "DELETE" },
+  );
+  if (!response.ok)
+    throw new Error(`Failed to unload model: ${response.status}`);
+}
+
 // ── Send / replay ─────────────────────────────────────────────────────────────
 
 export interface SendResponse {
   request_id: string;
+  parent_id: string | null;
   status: number;
   body: Record<string, unknown>;
   duration_ms: number;

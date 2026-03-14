@@ -104,13 +104,15 @@ An LLM proxy with an interactive web interface for capturing, inspecting, editin
 ### Prompt Engineering Interface
 - [x] Server/provider selection (dropdown of configured upstream targets)
 - [x] Model selection — manual entry or live model list fetched from upstream (`GET /v1/models`)
+  - Loaded model status (⚡ prefix + green dot) for Ollama running models via `GET /api/ps`
+  - Unload button for loaded Ollama models (`DELETE /api/servers/:id/models/:name`)
 - [x] Compose new LLM request from scratch
   - System prompt editor
   - Message/conversation builder with role selection (user/assistant)
   - Parameter controls (temperature, max_tokens, top_p)
 - [x] Clone and edit from captured request — "Edit in Editor" button on request detail page
 - [x] Send composed/edited request through the proxy (stored + visible in dashboard)
-- [ ] Side-by-side diff view: original vs. edited request/response
+- [x] Side-by-side diff view: compare original vs. replayed request/response (`/compare?a=:id&b=:id`)
 - [ ] Conversation forking — branch from any point in a multi-turn conversation
 - [ ] Request templates — save commonly used request configurations
 
@@ -357,7 +359,8 @@ Each configured server gets a URL prefix derived from its name (e.g. server "Ope
 | `POST` | `/api/servers` | Add a server |
 | `PUT` | `/api/servers/:id` | Update a server |
 | `DELETE` | `/api/servers/:id` | Delete a server |
-| `GET` | `/api/servers/:id/models` | Query models from upstream server |
+| `GET` | `/api/servers/:id/models` | Query models from upstream server (includes `loaded` status for Ollama) |
+| `DELETE` | `/api/servers/:id/models/:name` | Unload a model from Ollama memory |
 | `GET` | `/api/events` | SSE stream — lifecycle events (`request.started/completed/error`) |
 | `GET` | `/api/requests/:id/stream` | SSE stream — live token chunks for a specific request |
 
@@ -391,13 +394,14 @@ Each configured server gets a URL prefix derived from its name (e.g. server "Ope
 - [x] Live streaming response view — tokens display as they arrive
 - [x] Filtering by protocol and model
 
-### Phase 4 — Prompt Engineering ✓ (partial)
+### Phase 4 — Prompt Engineering ✓
 - [x] Server configuration CRUD (UI + API) — `GET/POST/PUT/DELETE /api/servers`
 - [x] Model listing from upstream — `GET /api/servers/:id/models`
+- [x] Loaded model status + Ollama unload — `GET /api/ps` annotation + `DELETE /api/servers/:id/models/:name`
 - [x] Request editor — compose from scratch with server/model/messages/params
 - [x] Clone from captured request and edit — "Edit in Editor" button on detail page
 - [x] Send edited request and view response — `POST /api/send`, `POST /api/requests/:id/replay`
-- [ ] Side-by-side response comparison / diff
+- [x] Side-by-side response comparison / diff — `/compare?a=:id&b=:id`
 
 ### Phase 5 — Polish
 - Export (JSON, cURL)
