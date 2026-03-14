@@ -60,19 +60,18 @@ An LLM proxy with an interactive web interface for capturing, inspecting, editin
   - `messages[]` format with roles (system, user, assistant, tool)
   - Tool/function calling pass-through
   - Response format: `choices[].message`
-- [ ] OpenAI Responses API (`POST /v1/responses`)
+- [x] OpenAI Responses API (`POST /v1/responses`)
   - Bearer token auth forwarding
   - `input` + `instructions` format
   - Built-in tool support (web_search, file_search, code_interpreter, functions)
   - Response format: `output[]` items
-  - Semantic streaming events (`response.created`, `response.output.text.delta`, etc.)
-- [ ] Anthropic Messages API (`POST /v1/messages`)
+  - Semantic streaming events (`response.created`, `response.output_text.delta`, `response.completed`, etc.)
+- [x] Anthropic Messages API (`POST /v1/messages`)
   - `x-api-key` header auth forwarding
   - `messages[]` + separate `system` prompt
   - `max_tokens` required field handling
   - Content blocks response format (`content[].type`)
-  - Thinking blocks support
-  - Named streaming events (`message_start`, `content_block_delta`, etc.)
+  - Named streaming events (`message_start`, `content_block_delta`, `message_delta`, `message_stop`, etc.)
 - [ ] Model listing endpoints
   - `GET /v1/models` (OpenAI)
   - `GET /v1/models` (Anthropic — if available)
@@ -85,6 +84,9 @@ An LLM proxy with an interactive web interface for capturing, inspecting, editin
   - OpenAI Responses: `event: {type}\ndata: {json}\n\n` semantic events
   - Anthropic: `event: {type}\ndata: {json}\n\n` named events with `ping` keep-alive
 - [x] Full response reconstruction from stream chunks for storage
+  - OpenAI Chat: delta assembly into `choices[].message`
+  - OpenAI Responses: assembled from `response.completed` event or delta fallback
+  - Anthropic: assembled from `message_start` + `content_block_delta` + `message_delta`
 - [x] Stream interruption / error handling
 - [ ] Backpressure handling for slow clients
 
@@ -385,8 +387,8 @@ Each configured server gets a URL prefix derived from its name (e.g. server "Ope
 - [x] Implement transparent proxy for OpenAI Chat Completions (non-streaming)
 - [x] Request/response capture and SQLite storage
 - [x] Add streaming (SSE) proxy with tee to Redis
-- [ ] Extend to OpenAI Responses protocol
-- [ ] Extend to Anthropic Messages protocol
+- [x] Extend to OpenAI Responses protocol
+- [x] Extend to Anthropic Messages protocol
 
 ### Phase 3 — Live Dashboard ✓
 - [x] SSE endpoint (`GET /api/events`, `GET /api/requests/:id/stream`) bridging Redis → browser
