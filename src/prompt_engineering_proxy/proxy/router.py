@@ -4,22 +4,28 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, Response
 
 from prompt_engineering_proxy.proxy.handler import proxy_request
+from prompt_engineering_proxy.proxy.protocols.anthropic import AnthropicHandler
 from prompt_engineering_proxy.proxy.protocols.base import ProtocolHandler
 from prompt_engineering_proxy.proxy.protocols.ollama_chat import OllamaChatHandler
 from prompt_engineering_proxy.proxy.protocols.ollama_generate import OllamaGenerateHandler
 from prompt_engineering_proxy.proxy.protocols.openai_chat import OpenAIChatHandler
+from prompt_engineering_proxy.proxy.protocols.openai_responses import OpenAIResponsesHandler
 from prompt_engineering_proxy.storage.database import Database
 from prompt_engineering_proxy.storage.repository import ServerRepository
 
 router = APIRouter()
 
 _openai_chat = OpenAIChatHandler()
+_openai_responses = OpenAIResponsesHandler()
+_anthropic = AnthropicHandler()
 _ollama_chat = OllamaChatHandler()
 _ollama_generate = OllamaGenerateHandler()
 
 # Maps the LLM endpoint path (after /v1/) to its protocol handler.
 _HANDLER_FOR_PATH: dict[str, ProtocolHandler] = {
     "chat/completions": _openai_chat,
+    "responses": _openai_responses,
+    "messages": _anthropic,
 }
 
 # Maps Ollama API paths (after /api/) to their protocol handlers.

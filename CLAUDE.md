@@ -102,8 +102,8 @@ src/prompt_engineering_proxy/  # FastAPI application (Python package)
     protocols/        # Per-protocol parsing (no cross-format conversion)
       base.py         # ProtocolHandler ABC
       openai_chat.py  # /v1/chat/completions — non-streaming + streaming [✓]
-      openai_responses.py  # /v1/responses (placeholder)
-      anthropic.py    # /v1/messages (placeholder)
+      openai_responses.py  # /v1/responses — non-streaming + streaming [✓]
+      anthropic.py    # /v1/messages — non-streaming + streaming [✓]
   storage/            # SQLite persistence layer [Phase 1 ✓]
     database.py       # Connection management, WAL mode, schema migrations
     models.py         # Pydantic models: Server, ProxyRequest
