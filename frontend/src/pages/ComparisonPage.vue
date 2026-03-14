@@ -176,7 +176,10 @@ onMounted(async () => {
     return;
   }
   try {
-    [reqA.value, reqB.value] = await Promise.all([getRequest(a), getRequest(b)]);
+    [reqA.value, reqB.value] = await Promise.all([
+      getRequest(a),
+      getRequest(b),
+    ]);
   } catch (e) {
     error.value = e instanceof Error ? e.message : "Failed to load requests";
   } finally {
@@ -202,10 +205,7 @@ onMounted(async () => {
     </div>
 
     <!-- Error / loading -->
-    <div
-      v-if="error"
-      class="p-8 text-center text-sm text-red-600"
-    >
+    <div v-if="error" class="p-8 text-center text-sm text-red-600">
       {{ error }}
     </div>
     <div
@@ -218,19 +218,23 @@ onMounted(async () => {
     <!-- Content -->
     <div v-else-if="reqA && reqB" class="flex flex-1 flex-col overflow-y-auto">
       <!-- Meta summary row -->
-      <div class="grid grid-cols-2 gap-4 border-b px-4 py-2 text-xs text-muted-foreground bg-gray-50">
+      <div
+        class="grid grid-cols-2 gap-4 border-b px-4 py-2 text-xs text-muted-foreground bg-gray-50"
+      >
         <div class="space-y-0.5">
           <div class="font-medium text-gray-700">Original</div>
           <div>{{ reqA.model ?? "–" }} · {{ reqA.duration_ms ?? "?" }}ms</div>
           <div v-if="reqA.prompt_tokens != null">
-            ↑ {{ reqA.prompt_tokens }} / ↓ {{ reqA.completion_tokens ?? "?" }} tokens
+            ↑ {{ reqA.prompt_tokens }} / ↓
+            {{ reqA.completion_tokens ?? "?" }} tokens
           </div>
         </div>
         <div class="space-y-0.5">
           <div class="font-medium text-gray-700">Modified</div>
           <div>{{ reqB.model ?? "–" }} · {{ reqB.duration_ms ?? "?" }}ms</div>
           <div v-if="reqB.prompt_tokens != null">
-            ↑ {{ reqB.prompt_tokens }} / ↓ {{ reqB.completion_tokens ?? "?" }} tokens
+            ↑ {{ reqB.prompt_tokens }} / ↓
+            {{ reqB.completion_tokens ?? "?" }} tokens
           </div>
         </div>
       </div>
@@ -239,22 +243,28 @@ onMounted(async () => {
       <div class="border-b">
         <div class="flex items-center gap-2 px-4 py-2 bg-gray-50 border-b">
           <span class="text-xs font-semibold text-gray-700">Request Body</span>
-          <span
-            v-if="!hasRequestDiff"
-            class="text-xs text-green-600"
-          >identical</span>
+          <span v-if="!hasRequestDiff" class="text-xs text-green-600"
+            >identical</span
+          >
           <span v-else class="text-xs text-amber-600">differs</span>
         </div>
-        <div v-if="hasRequestDiff" class="grid grid-cols-2 divide-x overflow-x-auto">
+        <div
+          v-if="hasRequestDiff"
+          class="grid grid-cols-2 divide-x overflow-x-auto"
+        >
           <!-- Left (A) -->
-          <pre class="p-3 text-xs leading-5 bg-white overflow-x-auto"><template v-for="(line, idx) in reqLinesA" :key="idx"><span
+          <pre
+            class="p-3 text-xs leading-5 bg-white overflow-x-auto"
+          ><template v-for="(line, idx) in reqLinesA" :key="idx"><span
               :class="{
                 'bg-red-100 block -mx-3 px-3': line.type === 'removed',
               }"
             >{{ line.text }}</span
           ></template></pre>
           <!-- Right (B) -->
-          <pre class="p-3 text-xs leading-5 bg-white overflow-x-auto"><template v-for="(line, idx) in reqLinesB" :key="idx"><span
+          <pre
+            class="p-3 text-xs leading-5 bg-white overflow-x-auto"
+          ><template v-for="(line, idx) in reqLinesB" :key="idx"><span
               :class="{
                 'bg-green-100 block -mx-3 px-3': line.type === 'added',
               }"
@@ -270,22 +280,25 @@ onMounted(async () => {
       <div class="flex-1">
         <div class="flex items-center gap-2 px-4 py-2 bg-gray-50 border-b">
           <span class="text-xs font-semibold text-gray-700">Response</span>
-          <span
-            v-if="!hasResponseDiff"
-            class="text-xs text-green-600"
-          >identical</span>
+          <span v-if="!hasResponseDiff" class="text-xs text-green-600"
+            >identical</span
+          >
           <span v-else class="text-xs text-amber-600">differs</span>
         </div>
         <div class="grid grid-cols-2 divide-x overflow-x-auto">
           <!-- Left (A) -->
-          <pre class="p-3 text-xs leading-5 bg-white overflow-x-auto whitespace-pre-wrap break-words"><template v-for="(line, idx) in linesA" :key="idx"><span
+          <pre
+            class="p-3 text-xs leading-5 bg-white overflow-x-auto whitespace-pre-wrap break-words"
+          ><template v-for="(line, idx) in linesA" :key="idx"><span
               :class="{
                 'bg-red-100 block -mx-3 px-3': line.type === 'removed',
               }"
             >{{ line.text }}</span
           ></template></pre>
           <!-- Right (B) -->
-          <pre class="p-3 text-xs leading-5 bg-white overflow-x-auto whitespace-pre-wrap break-words"><template v-for="(line, idx) in linesB" :key="idx"><span
+          <pre
+            class="p-3 text-xs leading-5 bg-white overflow-x-auto whitespace-pre-wrap break-words"
+          ><template v-for="(line, idx) in linesB" :key="idx"><span
               :class="{
                 'bg-green-100 block -mx-3 px-3': line.type === 'added',
               }"

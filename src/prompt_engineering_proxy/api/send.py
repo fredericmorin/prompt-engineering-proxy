@@ -1,5 +1,6 @@
 """Management API — send new requests and replay captured ones."""
 
+import asyncio
 import json
 import time
 from typing import Any
@@ -11,6 +12,7 @@ from pydantic import BaseModel
 
 from prompt_engineering_proxy.proxy.protocols.base import ProtocolHandler
 from prompt_engineering_proxy.proxy.protocols.openai_chat import OpenAIChatHandler
+from prompt_engineering_proxy.proxy.streaming import tee_sse_stream
 from prompt_engineering_proxy.realtime.events import (
     CHANNEL_REQUESTS,
     REQUEST_COMPLETED,
@@ -55,10 +57,12 @@ def _redact_auth(headers: dict[str, str]) -> dict[str, str]:
 class SendRequest(BaseModel):
     server_id: str
     body: dict[str, Any]
+    stream: bool = False
 
 
 class ReplayRequest(BaseModel):
     body: dict[str, Any] | None = None  # optional overrides to merge into original
+    stream: bool = False
 
 
 async def _execute_request(
@@ -66,6 +70,7 @@ async def _execute_request(
     server_id: str,
     body: dict[str, Any],
     parent_id: str | None = None,
+    stream: bool = False,
 ) -> JSONResponse:
     db: Database = request.app.state.db
     publisher: RedisPublisher = request.app.state.redis
@@ -89,12 +94,75 @@ async def _execute_request(
         else:
             forward_headers["Authorization"] = f"Bearer {api_key}"
 
-    # Editor always sends non-streaming
-    body = {**body, "stream": False}
-    body_bytes = json.dumps(body).encode()
-
     handler: ProtocolHandler = _PROTOCOL_HANDLERS.get(protocol, OpenAIChatHandler())
     model = handler.extract_model(body)
+
+    if stream:
+        # Send with streaming — return request_id immediately, run in background
+        body = {**body, "stream": True}
+        body_bytes = json.dumps(body).encode()
+
+        repo_req = RequestRepository(db)
+        proxy_req = ProxyRequest(
+            protocol=protocol,
+            method="POST",
+            path=path,
+            request_headers=json.dumps(_redact_auth(forward_headers)),
+            request_body=json.dumps(body),
+            is_streaming=True,
+            model=model,
+            server_id=server_id,
+            parent_id=parent_id,
+        )
+        await repo_req.create(proxy_req)
+        await publisher.publish(
+            CHANNEL_REQUESTS,
+            ProxyEvent(type=REQUEST_STARTED, request_id=proxy_req.id),
+        )
+
+        # Start streaming in background task
+        upstream_request = http_client.build_request(
+            method="POST",
+            url=upstream_url,
+            headers=forward_headers,
+            content=body_bytes,
+        )
+        start_time = time.monotonic()
+        try:
+            upstream_response = await http_client.send(upstream_request, stream=True)
+        except httpx.RequestError as exc:
+            duration_ms = int((time.monotonic() - start_time) * 1000)
+            await repo_req.update(proxy_req.id, error=str(exc), duration_ms=duration_ms)
+            await publisher.publish(
+                CHANNEL_REQUESTS,
+                ProxyEvent(type=REQUEST_ERROR, request_id=proxy_req.id, data={"error": str(exc)}),
+            )
+            raise HTTPException(status_code=502, detail=f"Upstream request failed: {exc}") from exc
+
+        async def _drain_stream() -> None:
+            async for _ in tee_sse_stream(
+                upstream_response=upstream_response,
+                publisher=publisher,
+                request_id=proxy_req.id,
+                repo=repo_req,
+                handler=handler,
+                start_time=start_time,
+            ):
+                pass  # chunks already published to Redis and stored
+
+        asyncio.create_task(_drain_stream())
+
+        return JSONResponse(
+            content={
+                "request_id": proxy_req.id,
+                "parent_id": parent_id,
+                "streaming": True,
+            }
+        )
+
+    # Non-streaming path
+    body = {**body, "stream": False}
+    body_bytes = json.dumps(body).encode()
 
     repo_req = RequestRepository(db)
     proxy_req = ProxyRequest(
@@ -169,7 +237,7 @@ async def _execute_request(
 @router.post("/send")
 async def send_request(request: Request, body: SendRequest) -> JSONResponse:
     """Send a new composed request to an upstream server."""
-    return await _execute_request(request, body.server_id, body.body)
+    return await _execute_request(request, body.server_id, body.body, stream=body.stream)
 
 
 @router.post("/requests/{request_id}/replay")
@@ -189,4 +257,4 @@ async def replay_request(request: Request, request_id: str, body: ReplayRequest)
     if body.body:
         original_body.update(body.body)
 
-    return await _execute_request(request, server_id, original_body, parent_id=request_id)
+    return await _execute_request(request, server_id, original_body, parent_id=request_id, stream=body.stream)

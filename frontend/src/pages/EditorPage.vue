@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Plus, Trash2, Send, RefreshCw, Loader2, Zap } from "lucide-vue-next";
+import {
+  Plus,
+  Trash2,
+  Send,
+  RefreshCw,
+  Loader2,
+  Zap,
+  GitFork,
+} from "lucide-vue-next";
 import { useServersStore } from "@/stores/servers";
 import {
   listServerModels,
@@ -11,6 +19,7 @@ import {
   type ModelInfo,
   type SendResponse,
 } from "@/lib/api";
+import StreamingView from "@/components/requests/StreamingView.vue";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -32,6 +41,7 @@ const temperature = ref(1.0);
 const maxTokens = ref<number | null>(null);
 const topP = ref<number | null>(null);
 const systemPrompt = ref("");
+const streamingEnabled = ref(true);
 
 const models = ref<ModelInfo[]>([]);
 const loadingModels = ref(false);
@@ -40,7 +50,9 @@ const modelsError = ref("");
 const sending = ref(false);
 const sendError = ref("");
 const response = ref<SendResponse | null>(null);
+const streamingRequestId = ref<string | null>(null);
 const clonedFrom = ref<string | null>(null);
+const forkedAtIndex = ref<number | null>(null);
 
 const unloadingModel = ref("");
 const unloadError = ref("");
@@ -100,7 +112,8 @@ async function unload(modelId: string) {
     // Refresh model list to update loaded status
     await fetchModels();
   } catch (e) {
-    unloadError.value = e instanceof Error ? e.message : "Failed to unload model";
+    unloadError.value =
+      e instanceof Error ? e.message : "Failed to unload model";
   } finally {
     unloadingModel.value = "";
   }
@@ -129,6 +142,7 @@ async function submit() {
   sending.value = true;
   sendError.value = "";
   response.value = null;
+  streamingRequestId.value = null;
 
   const body: Record<string, unknown> = {
     model: model.value.trim(),
@@ -139,12 +153,26 @@ async function submit() {
   if (topP.value !== null) body.top_p = topP.value;
 
   try {
-    response.value = await sendRequest(selectedServerId.value, body);
+    const result = await sendRequest(
+      selectedServerId.value,
+      body,
+      streamingEnabled.value,
+    );
+    if ("streaming" in result && result.streaming) {
+      streamingRequestId.value = result.request_id;
+    } else {
+      response.value = result as SendResponse;
+    }
   } catch (e) {
     sendError.value = e instanceof Error ? e.message : "Request failed";
   } finally {
     sending.value = false;
   }
+}
+
+function onStreamComplete(requestId: string) {
+  // After streaming completes, navigate to request detail to show full response
+  router.push({ name: "request-detail", params: { id: requestId } });
 }
 
 function buildMessages(): Message[] {
@@ -167,7 +195,7 @@ function viewInDashboard() {
 
 // ── Clone from captured request ──────────────────────────────────────────
 
-async function loadFromRequest(id: string) {
+async function loadFromRequest(id: string, forkAt?: number) {
   try {
     const req = await getRequest(id);
     if (!req.request_body) return;
@@ -181,7 +209,7 @@ async function loadFromRequest(id: string) {
           typeof m === "object" && m !== null && m.role === "system",
       );
       if (sys?.content) systemPrompt.value = String(sys.content);
-      messages.value = rawMessages
+      let nonSystemMessages = rawMessages
         .filter(
           (m): m is Record<string, string> =>
             typeof m === "object" && m !== null && m.role !== "system",
@@ -190,6 +218,14 @@ async function loadFromRequest(id: string) {
           role: m.role as Message["role"],
           content: String(m.content ?? ""),
         }));
+
+      // Fork: keep only messages up to forkAt index (inclusive)
+      if (forkAt !== undefined && forkAt >= 0) {
+        nonSystemMessages = nonSystemMessages.slice(0, forkAt + 1);
+        forkedAtIndex.value = forkAt;
+      }
+
+      messages.value = nonSystemMessages;
       if (messages.value.length === 0)
         messages.value = [{ role: "user", content: "" }];
     }
@@ -220,7 +256,10 @@ onMounted(async () => {
 
   // Load from captured request if query param provided
   const fromId = route.query.from as string | undefined;
-  if (fromId) await loadFromRequest(fromId);
+  const forkAtParam = route.query.fork_at as string | undefined;
+  const forkAt =
+    forkAtParam !== undefined ? parseInt(forkAtParam, 10) : undefined;
+  if (fromId) await loadFromRequest(fromId, forkAt);
 });
 
 watch(selectedServerId, () => {
@@ -235,10 +274,18 @@ watch(selectedServerId, () => {
     <div class="flex items-center gap-3 border-b px-4 py-3 shrink-0">
       <h2 class="text-base font-semibold">Editor</h2>
       <span
-        v-if="clonedFrom"
+        v-if="clonedFrom && forkedAtIndex === null"
         class="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700"
       >
         cloned from {{ clonedFrom.slice(0, 10) }}…
+      </span>
+      <span
+        v-if="clonedFrom && forkedAtIndex !== null"
+        class="flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-xs text-purple-700"
+      >
+        <GitFork class="h-3 w-3" />
+        forked from {{ clonedFrom.slice(0, 10) }}… at turn
+        {{ forkedAtIndex + 1 }}
       </span>
     </div>
 
@@ -305,10 +352,7 @@ watch(selectedServerId, () => {
               </button>
             </div>
             <!-- Loaded model actions -->
-            <div
-              v-if="models.some((m) => m.loaded)"
-              class="mt-2 space-y-1"
-            >
+            <div v-if="models.some((m) => m.loaded)" class="mt-2 space-y-1">
               <div
                 v-for="m in models.filter((m) => m.loaded)"
                 :key="m.id"
@@ -398,8 +442,33 @@ watch(selectedServerId, () => {
           </div>
         </div>
 
-        <!-- Response -->
-        <div v-if="response || sendError" class="mt-2">
+        <!-- Live streaming response -->
+        <div v-if="streamingRequestId" class="mt-2">
+          <div class="mb-1 flex items-center justify-between">
+            <label class="text-xs font-medium text-gray-600">
+              Response
+              <span class="ml-1 text-blue-600 animate-pulse">● streaming</span>
+            </label>
+            <button
+              class="text-xs text-gray-400 underline hover:text-gray-700"
+              @click="
+                router.push({
+                  name: 'request-detail',
+                  params: { id: streamingRequestId! },
+                })
+              "
+            >
+              View in dashboard
+            </button>
+          </div>
+          <StreamingView
+            :request-id="streamingRequestId"
+            @done="onStreamComplete(streamingRequestId!)"
+          />
+        </div>
+
+        <!-- Non-streaming response -->
+        <div v-else-if="response || sendError" class="mt-2">
           <div class="mb-1 flex items-center justify-between">
             <label class="text-xs font-medium text-gray-600">Response</label>
             <div class="flex items-center gap-3 text-xs text-gray-400">
@@ -503,6 +572,22 @@ watch(selectedServerId, () => {
             class="w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-gray-400"
             placeholder="default"
           />
+        </div>
+
+        <!-- Streaming toggle -->
+        <div class="flex items-center gap-2">
+          <input
+            id="streaming-toggle"
+            v-model="streamingEnabled"
+            type="checkbox"
+            class="h-3.5 w-3.5 rounded border-gray-300"
+          />
+          <label
+            for="streaming-toggle"
+            class="text-xs font-medium text-gray-600 cursor-pointer"
+          >
+            Streaming
+          </label>
         </div>
 
         <div class="mt-auto">

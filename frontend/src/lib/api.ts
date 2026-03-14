@@ -123,14 +123,21 @@ export interface SendResponse {
   completion_tokens: number | null;
 }
 
+export interface SendStreamingResponse {
+  request_id: string;
+  parent_id: string | null;
+  streaming: true;
+}
+
 export async function sendRequest(
   serverId: string,
   body: Record<string, unknown>,
-): Promise<SendResponse> {
+  stream = false,
+): Promise<SendResponse | SendStreamingResponse> {
   const response = await fetch(`${BASE_URL}/api/send`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ server_id: serverId, body }),
+    body: JSON.stringify({ server_id: serverId, body, stream }),
   });
   if (!response.ok) {
     const err = await response
@@ -146,11 +153,12 @@ export async function sendRequest(
 export async function replayRequest(
   requestId: string,
   bodyOverrides?: Record<string, unknown>,
-): Promise<SendResponse> {
+  stream = false,
+): Promise<SendResponse | SendStreamingResponse> {
   const response = await fetch(`${BASE_URL}/api/requests/${requestId}/replay`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ body: bodyOverrides ?? null }),
+    body: JSON.stringify({ body: bodyOverrides ?? null, stream }),
   });
   if (!response.ok) {
     const err = await response

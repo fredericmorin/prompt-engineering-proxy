@@ -114,7 +114,7 @@ src/prompt_engineering_proxy/  # FastAPI application (Python package)
     events.py         # GET /api/events (lifecycle SSE), GET /api/requests/:id/stream (chunk SSE)
     servers.py        # CRUD /api/servers — upstream server config [Phase 4 ✓]
     models.py         # GET /api/servers/:id/models (loaded status via /api/ps), DELETE unload [Phase 4 ✓]
-    send.py           # POST /api/send + POST /api/requests/:id/replay [Phase 4 ✓]
+    send.py           # POST /api/send + POST /api/requests/:id/replay [Phase 4 ✓]; stream=true → background asyncio.create_task + Redis/SSE
 tests/                # pytest tests (top-level)
 
 frontend/src/         # Vue.js 3 SPA
@@ -135,7 +135,7 @@ frontend/src/         # Vue.js 3 SPA
       RequestList.vue         # Scrollable request feed with auto-scroll
       RequestListItem.vue     # Single row: protocol, method, path, model, status, timing
       RequestFilters.vue      # Protocol + model dropdowns
-      RequestDetail.vue       # Full detail: headers, body, timing, token counts
+      RequestDetail.vue       # Full detail: headers, body, timing, token counts; conversation thread with per-turn "Fork from here" button
       RequestHeaders.vue      # Key-value header table
       RequestBody.vue         # Pretty-printed JSON body
       StreamingView.vue       # Live token stream via /api/requests/:id/stream SSE
@@ -144,7 +144,7 @@ frontend/src/         # Vue.js 3 SPA
   pages/
     DashboardPage.vue         # Request list + filters + SSE connection [Phase 3 ✓]
     RequestDetailPage.vue     # Request detail + "Edit in Editor" + "Compare with original" buttons [Phase 3+4 ✓]
-    EditorPage.vue            # Prompt editor: server/model/messages/params + send + compare [Phase 4 ✓]
+    EditorPage.vue            # Prompt editor: server/model/messages/params + send + compare [Phase 4 ✓]; streaming toggle + live StreamingView; fork_at param for conversation branching
     SettingsPage.vue          # Server configuration CRUD [Phase 4 ✓]
     ComparisonPage.vue        # Side-by-side diff of two requests (/compare?a=:id&b=:id) [Phase 4 ✓]
 ```

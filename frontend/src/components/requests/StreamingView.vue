@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted } from "vue";
 
 const props = defineProps<{ requestId: string }>();
+const emit = defineEmits<{ done: [] }>();
 
 const tokens = ref("");
 const done = ref(false);
@@ -30,6 +31,7 @@ onMounted(() => {
       if (payload.type === "done") {
         done.value = true;
         es?.close();
+        emit("done");
         return;
       }
       if (payload.type === "chunk") {
