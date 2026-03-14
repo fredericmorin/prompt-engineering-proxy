@@ -1,0 +1,53 @@
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  backend:
+    image: python:3.12-slim
+    working_dir: /app
+    command: >
+      sh -c "pip install uv -q &&
+             uv sync --frozen &&
+             uv run uvicorn prompt_engineering_proxy.main:app
+               --host 0.0.0.0 --port 8000 --reload"
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_PATH=/app/data/proxy.db
+    volumes:
+      - .:/app
+      - backend-data:/app/data
+      - backend-venv:/app/.venv
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  frontend:
+    image: node:20-slim
+    working_dir: /app/frontend
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - "5173:5173"
+    environment:
+      - BACKEND_URL=http://backend:8000
+    volumes:
+      - ./frontend:/app/frontend
+      - frontend-modules:/app/frontend/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  redis-data:
+  backend-data:
+  backend-venv:
+  frontend-modules:
