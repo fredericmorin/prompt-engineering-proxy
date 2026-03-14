@@ -13,10 +13,19 @@ function extractDelta(data: string): string {
   if (data === "[DONE]") return "";
   try {
     const obj = JSON.parse(data) as Record<string, unknown>;
+    // OpenAI Chat SSE: choices[0].delta.content
     const choices = obj.choices as
       | Array<{ delta?: { content?: string } }>
       | undefined;
-    return choices?.[0]?.delta?.content ?? "";
+    if (choices?.[0]?.delta?.content !== undefined) {
+      return choices[0].delta.content ?? "";
+    }
+    // Ollama Chat NDJSON: message.content
+    const message = obj.message as { content?: string } | undefined;
+    if (message?.content !== undefined) return message.content;
+    // Ollama Generate NDJSON: response (string token)
+    if (typeof obj.response === "string") return obj.response;
+    return "";
   } catch {
     return "";
   }

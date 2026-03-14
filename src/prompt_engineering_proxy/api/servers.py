@@ -10,7 +10,7 @@ from prompt_engineering_proxy.storage.repository import ServerRepository
 
 router = APIRouter()
 
-_VALID_PROTOCOLS = {"openai_chat", "openai_responses", "anthropic"}
+_VALID_PROTOCOLS = {"openai_chat", "openai_responses", "anthropic", "ollama_chat", "ollama_generate"}
 
 
 def _get_repo(request: Request) -> ServerRepository:

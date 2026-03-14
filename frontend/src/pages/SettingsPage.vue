@@ -13,8 +13,9 @@ function nameToSlug(name: string): string {
   return slug || "server";
 }
 
-function proxyPrefix(name: string): string {
-  return `${window.location.origin}/${nameToSlug(name)}/v1`;
+function proxyPrefix(name: string, protocol: string): string {
+  const apiBase = protocol.startsWith("ollama") ? "api" : "v1";
+  return `${window.location.origin}/${nameToSlug(name)}/${apiBase}`;
 }
 
 async function copyToClipboard(text: string) {
@@ -27,6 +28,8 @@ const PROTOCOLS = [
   { value: "openai_chat", label: "OpenAI Chat Completions" },
   { value: "openai_responses", label: "OpenAI Responses" },
   { value: "anthropic", label: "Anthropic Messages" },
+  { value: "ollama_chat", label: "Ollama Chat (/api/chat)" },
+  { value: "ollama_generate", label: "Ollama Generate (/api/generate)" },
 ];
 
 // Form state
@@ -167,12 +170,12 @@ onMounted(() => store.fetchServers());
               <code
                 class="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600 truncate max-w-xs"
               >
-                {{ proxyPrefix(server.name) }}
+                {{ proxyPrefix(server.name, server.protocol) }}
               </code>
               <button
                 class="rounded p-0.5 text-gray-400 hover:text-gray-600"
                 title="Copy proxy base URL"
-                @click="copyToClipboard(proxyPrefix(server.name))"
+                @click="copyToClipboard(proxyPrefix(server.name, server.protocol))"
               >
                 <Copy class="h-3 w-3" />
               </button>
