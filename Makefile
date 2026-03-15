@@ -35,10 +35,10 @@ dev: ## Start full dev environment via Docker Compose (hot reload)
 
 .PHONY: debug
 debug: .venv/deps frontend/node_modules ## Start all services locally (no Docker)
-	@echo "Starting backend and frontend..."
+	@echo "Starting backend (port 8000) and frontend (port 5173)..."
 	@trap 'kill 0' EXIT; \
-		uv run uvicorn prompt_engineering_proxy.main:app --reload --port 8000 & \
 		cd frontend && npm run dev & \
+		FRONTEND_URL=http://localhost:5173 uv run uvicorn prompt_engineering_proxy.main:app --reload --port 8000 & \
 		wait
 
 .PHONY: dev-backend

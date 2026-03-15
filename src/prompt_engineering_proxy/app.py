@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 
 from prompt_engineering_proxy.api.router import router as api_router
 from prompt_engineering_proxy.config import settings
+from prompt_engineering_proxy.dev_proxy import create_dev_proxy_router
 from prompt_engineering_proxy.proxy.router import router as proxy_router
 from prompt_engineering_proxy.realtime.publisher import RedisPublisher
 from prompt_engineering_proxy.storage.database import Database
@@ -92,8 +93,12 @@ def create_app() -> FastAPI:
             status_code=status_code,
         )
 
-    # Serve built frontend static files if the directory exists
-    if STATIC_DIR.is_dir():
+    # In dev mode, reverse-proxy frontend requests to the Vite dev server.
+    # In production, serve built frontend static files from disk.
+    if settings.frontend_url:
+        logger.info("Dev proxy enabled → forwarding frontend requests to %s", settings.frontend_url)
+        app.include_router(create_dev_proxy_router(settings.frontend_url))
+    elif STATIC_DIR.is_dir():
         app.mount("/assets", StaticFiles(directory=STATIC_DIR / "assets"), name="static-assets")
 
         @app.get("/{full_path:path}")

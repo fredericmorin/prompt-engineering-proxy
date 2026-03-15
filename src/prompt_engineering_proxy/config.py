@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     database_path: str = "data/proxy.db"
     log_level: str = "info"
     cors_origins: str = "http://localhost:5173"
+    frontend_url: str = ""
 
     @property
     def cors_origin_list(self) -> list[str]:

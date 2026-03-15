@@ -42,6 +42,7 @@ src/prompt_engineering_proxy/  # FastAPI application (Python package)
       openai_chat.py  # /v1/chat/completions — non-streaming + streaming [✓]
       openai_responses.py  # /v1/responses — non-streaming + streaming [✓]
       anthropic.py    # /v1/messages — non-streaming + streaming [✓]
+  dev_proxy.py        # Reverse proxy to Vite dev server (HTTP + WebSocket)
   storage/            # SQLite persistence layer [Phase 1 ✓]
     database.py       # Connection management, WAL mode, schema migrations
     models.py         # Pydantic models: Server, ProxyRequest
@@ -169,3 +170,4 @@ frontend/src/         # Vue.js 3 SPA
 | `DATABASE_PATH` | `data/proxy.db` | SQLite database file path |
 | `LOG_LEVEL` | `info` | Logging level |
 | `CORS_ORIGINS` | `http://localhost:5173` | Allowed CORS origins (comma-separated) |
+| `FRONTEND_URL` | _(empty)_ | Vite dev server URL for dev proxy (e.g. `http://localhost:5173`) |

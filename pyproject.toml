@@ -21,6 +21,7 @@ dependencies = [
     "redis[hiredis]",
     "sse-starlette",
     "python-ulid",
+    "websockets",
     "pytest-asyncio>=1.3.0",
 ]
 
