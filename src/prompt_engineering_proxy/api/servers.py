@@ -8,16 +8,16 @@ from pydantic import BaseModel
 
 from prompt_engineering_proxy.storage.database import Database
 from prompt_engineering_proxy.storage.models import Server
-from prompt_engineering_proxy.storage.repository import ServerRepository
+from prompt_engineering_proxy.storage.services import ServerService
 
 router = APIRouter()
 
 _VALID_PROTOCOLS = {"openai_chat", "openai_responses", "anthropic", "ollama_chat", "ollama_generate"}
 
 
-def _get_repo(request: Request) -> ServerRepository:
+def _get_repo(request: Request) -> ServerService:
     db: Database = request.app.state.db
-    return ServerRepository(db)
+    return ServerService(db)
 
 
 def _redact_server(server: dict[str, object]) -> dict[str, object]:

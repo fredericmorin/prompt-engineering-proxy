@@ -11,7 +11,7 @@ from prompt_engineering_proxy.proxy.protocols.ollama_generate import OllamaGener
 from prompt_engineering_proxy.proxy.protocols.openai_chat import OpenAIChatHandler
 from prompt_engineering_proxy.proxy.protocols.openai_responses import OpenAIResponsesHandler
 from prompt_engineering_proxy.storage.database import Database
-from prompt_engineering_proxy.storage.repository import ServerRepository
+from prompt_engineering_proxy.storage.services import ServerService
 
 router = APIRouter()
 
@@ -52,7 +52,7 @@ async def prefixed_proxy(request: Request, server_slug: str, path: str) -> Respo
         )
 
     db: Database = request.app.state.db
-    repo = ServerRepository(db)
+    repo = ServerService(db)
     server = await repo.get_by_slug(server_slug)
     if server is None:
         return JSONResponse(
@@ -84,7 +84,7 @@ async def ollama_prefixed_proxy(request: Request, server_slug: str, path: str) -
         )
 
     db: Database = request.app.state.db
-    repo = ServerRepository(db)
+    repo = ServerService(db)
     server = await repo.get_by_slug(server_slug)
     if server is None:
         return JSONResponse(

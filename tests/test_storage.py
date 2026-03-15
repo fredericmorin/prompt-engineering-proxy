@@ -2,7 +2,7 @@ import pytest
 
 from prompt_engineering_proxy.storage.database import Database
 from prompt_engineering_proxy.storage.models import ProxyRequest, Server, new_ulid, now_iso
-from prompt_engineering_proxy.storage.repository import RequestRepository, ServerRepository
+from prompt_engineering_proxy.storage.services import RequestService, ServerService
 
 
 @pytest.mark.asyncio
@@ -34,7 +34,7 @@ async def test_database_ping_when_closed(tmp_db_path: str) -> None:
 
 @pytest.mark.asyncio
 async def test_server_repository_crud(database: Database) -> None:
-    repo = ServerRepository(database)
+    repo = ServerService(database)
     server = Server(name="Test Server", base_url="https://api.openai.com", protocol="openai_chat")
 
     created = await repo.create(server)
@@ -53,7 +53,7 @@ async def test_server_repository_crud(database: Database) -> None:
 
 @pytest.mark.asyncio
 async def test_request_repository_crud(database: Database) -> None:
-    repo = RequestRepository(database)
+    repo = RequestService(database)
     req = ProxyRequest(
         protocol="openai_chat",
         method="POST",

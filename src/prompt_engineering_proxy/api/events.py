@@ -12,7 +12,7 @@ from prompt_engineering_proxy.config import settings
 from prompt_engineering_proxy.realtime.events import CHANNEL_REQUESTS, CHANNEL_STREAM_PREFIX
 from prompt_engineering_proxy.realtime.subscriber import RedisSubscriber
 from prompt_engineering_proxy.storage.database import Database
-from prompt_engineering_proxy.storage.repository import RequestRepository
+from prompt_engineering_proxy.storage.services import RequestService
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ async def sse_request_stream(request: Request, request_id: str) -> StreamingResp
     Otherwise subscribes to the proxy:stream:{id} Redis channel.
     """
     db: Database = request.app.state.db
-    repo = RequestRepository(db)
+    repo = RequestService(db)
     row: dict[str, Any] | None = await repo.get(request_id)
 
     async def already_done() -> AsyncGenerator[str, None]:

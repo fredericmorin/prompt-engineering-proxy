@@ -16,7 +16,7 @@ from prompt_engineering_proxy.proxy.protocols.openai_chat import OpenAIChatHandl
 from prompt_engineering_proxy.realtime.publisher import RedisPublisher
 from prompt_engineering_proxy.storage.database import Database
 from prompt_engineering_proxy.storage.models import Server
-from prompt_engineering_proxy.storage.repository import RequestRepository, ServerRepository
+from prompt_engineering_proxy.storage.services import RequestService, ServerService
 
 
 # ---------------------------------------------------------------------------
@@ -58,7 +58,7 @@ async def app_client(tmp_path: Any) -> AsyncGenerator[tuple[AsyncClient, Databas
 
 
 async def _add_test_server(db: Database) -> Server:
-    repo = ServerRepository(db)
+    repo = ServerService(db)
     server = Server(
         name="test-openai",
         base_url="https://api.openai.com",
@@ -156,7 +156,7 @@ async def test_non_streaming_proxy_stores_request(
         headers={"Authorization": "Bearer sk-test1234567890abcdef"},
     )
 
-    repo = RequestRepository(db)
+    repo = RequestService(db)
     requests = await repo.list_recent(limit=1)
     assert len(requests) == 1
     req = requests[0]
@@ -183,7 +183,7 @@ async def test_non_streaming_proxy_redacts_api_key(
         headers={"Authorization": "Bearer sk-verysecretkey0000"},
     )
 
-    repo = RequestRepository(db)
+    repo = RequestService(db)
     requests = await repo.list_recent(limit=1)
     stored_headers = json.loads(requests[0]["request_headers"])
     auth = stored_headers.get("authorization", "")
@@ -225,7 +225,7 @@ async def test_non_streaming_proxy_upstream_error_returns_502(
 
     assert response.status_code == 502
 
-    repo = RequestRepository(db)
+    repo = RequestService(db)
     requests = await repo.list_recent(limit=1)
     assert requests[0]["error"] is not None
 
@@ -298,7 +298,7 @@ async def test_streaming_proxy_stores_assembled_response(
         json={"model": "gpt-4o", "messages": [{"role": "user", "content": "Hi"}], "stream": True},
     )
 
-    repo = RequestRepository(db)
+    repo = RequestService(db)
     requests = await repo.list_recent(limit=1)
     assert len(requests) == 1
     req = requests[0]
@@ -337,7 +337,7 @@ async def test_prefixed_route_routes_to_correct_server(
     assert response.json()["id"] == "chatcmpl-test"
 
     # Check stored record has correct server_id and clean path
-    repo = RequestRepository(db)
+    repo = RequestService(db)
     requests = await repo.list_recent(limit=1)
     assert requests[0]["server_id"] == server.id
     assert requests[0]["path"] == "/v1/chat/completions"

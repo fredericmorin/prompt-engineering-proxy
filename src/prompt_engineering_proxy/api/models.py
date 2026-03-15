@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 
 from prompt_engineering_proxy.storage.database import Database
-from prompt_engineering_proxy.storage.repository import ServerRepository
+from prompt_engineering_proxy.storage.services import ServerService
 
 router = APIRouter()
 
@@ -34,7 +34,7 @@ async def list_server_models(request: Request, server_id: str) -> JSONResponse:
     db: Database = request.app.state.db
     http_client: httpx.AsyncClient = request.app.state.http_client
 
-    repo = ServerRepository(db)
+    repo = ServerService(db)
     server = await repo.get(server_id)
     if server is None:
         raise HTTPException(status_code=404, detail="Server not found")
@@ -104,7 +104,7 @@ async def unload_model(request: Request, server_id: str, model_name: str) -> JSO
     db: Database = request.app.state.db
     http_client: httpx.AsyncClient = request.app.state.http_client
 
-    repo = ServerRepository(db)
+    repo = ServerService(db)
     server = await repo.get(server_id)
     if server is None:
         raise HTTPException(status_code=404, detail="Server not found")

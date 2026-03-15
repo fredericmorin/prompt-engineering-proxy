@@ -25,7 +25,7 @@ from prompt_engineering_proxy.realtime.events import (
 from prompt_engineering_proxy.realtime.publisher import RedisPublisher
 from prompt_engineering_proxy.storage.database import Database
 from prompt_engineering_proxy.storage.models import ProxyRequest
-from prompt_engineering_proxy.storage.repository import RequestRepository, ServerRepository
+from prompt_engineering_proxy.storage.services import RequestService, ServerService
 
 router = APIRouter()
 
@@ -82,7 +82,7 @@ async def _execute_request(
     publisher: RedisPublisher = request.app.state.redis
     http_client: httpx.AsyncClient = request.app.state.http_client
 
-    repo_server = ServerRepository(db)
+    repo_server = ServerService(db)
     server = await repo_server.get(server_id)
     if server is None:
         raise HTTPException(status_code=404, detail="Server not found")
@@ -108,7 +108,7 @@ async def _execute_request(
         body = {**body, "stream": True}
         body_bytes = json.dumps(body).encode()
 
-        repo_req = RequestRepository(db)
+        repo_req = RequestService(db)
         proxy_req = ProxyRequest(
             protocol=protocol,
             method="POST",
@@ -172,7 +172,7 @@ async def _execute_request(
     body = {**body, "stream": False}
     body_bytes = json.dumps(body).encode()
 
-    repo_req = RequestRepository(db)
+    repo_req = RequestService(db)
     proxy_req = ProxyRequest(
         protocol=protocol,
         method="POST",
@@ -252,7 +252,7 @@ async def send_request(request: Request, body: SendRequest) -> JSONResponse:
 async def replay_request(request: Request, request_id: str, body: ReplayRequest) -> JSONResponse:
     """Replay a captured request, optionally with body overrides."""
     db: Database = request.app.state.db
-    repo = RequestRepository(db)
+    repo = RequestService(db)
     original = await repo.get(request_id)
     if original is None:
         raise HTTPException(status_code=404, detail="Request not found")

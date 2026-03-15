@@ -6,14 +6,14 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
 
 from prompt_engineering_proxy.storage.database import Database
-from prompt_engineering_proxy.storage.repository import RequestRepository
+from prompt_engineering_proxy.storage.services import RequestService
 
 router = APIRouter()
 
 
-def _get_repo(request: Request) -> RequestRepository:
+def _get_repo(request: Request) -> RequestService:
     db: Database = request.app.state.db
-    return RequestRepository(db)
+    return RequestService(db)
 
 
 @router.get("/requests")

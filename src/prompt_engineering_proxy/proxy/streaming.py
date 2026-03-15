@@ -17,7 +17,7 @@ from prompt_engineering_proxy.realtime.events import (
     ProxyEvent,
 )
 from prompt_engineering_proxy.realtime.publisher import RedisPublisher
-from prompt_engineering_proxy.storage.repository import RequestRepository
+from prompt_engineering_proxy.storage.services import RequestService
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +26,7 @@ async def tee_ndjson_stream(
     upstream_response: httpx.Response,
     publisher: RedisPublisher,
     request_id: str,
-    repo: RequestRepository,
+    repo: RequestService,
     handler: ProtocolHandler,
     start_time: float,
 ) -> AsyncGenerator[bytes, None]:
@@ -89,7 +89,7 @@ async def tee_sse_stream(
     upstream_response: httpx.Response,
     publisher: RedisPublisher,
     request_id: str,
-    repo: RequestRepository,
+    repo: RequestService,
     handler: ProtocolHandler,
     start_time: float,
 ) -> AsyncGenerator[bytes, None]:
@@ -153,7 +153,7 @@ async def tee_sse_stream(
 
 
 async def _finalize_stream(
-    repo: RequestRepository,
+    repo: RequestService,
     publisher: RedisPublisher,
     request_id: str,
     handler: ProtocolHandler,

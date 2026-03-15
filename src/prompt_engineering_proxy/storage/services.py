@@ -4,7 +4,7 @@ from prompt_engineering_proxy.storage.database import Database
 from prompt_engineering_proxy.storage.models import ProxyRequest, Server, name_to_slug
 
 
-class ServerRepository:
+class ServerService:
     def __init__(self, db: Database) -> None:
         self.db = db
 
@@ -59,7 +59,7 @@ class ServerRepository:
         await self.db.commit()
 
 
-class RequestRepository:
+class RequestService:
     def __init__(self, db: Database) -> None:
         self.db = db
 

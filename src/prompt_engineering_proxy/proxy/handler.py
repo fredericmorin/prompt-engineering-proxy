@@ -20,7 +20,7 @@ from prompt_engineering_proxy.realtime.events import (
 from prompt_engineering_proxy.realtime.publisher import RedisPublisher
 from prompt_engineering_proxy.storage.database import Database
 from prompt_engineering_proxy.storage.models import ProxyRequest
-from prompt_engineering_proxy.storage.repository import RequestRepository, ServerRepository
+from prompt_engineering_proxy.storage.services import RequestService, ServerService
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ def _redact_headers(headers: dict[str, str]) -> dict[str, str]:
 
 async def _get_server(db: Database, protocol: str) -> dict[str, Any] | None:
     """Return the default (or first) server matching the protocol."""
-    repo = ServerRepository(db)
+    repo = ServerService(db)
     servers = await repo.list_all()
     default = next((s for s in servers if s["protocol"] == protocol and s["is_default"]), None)
     if default:
@@ -87,7 +87,7 @@ async def proxy_request(
     http_client: httpx.AsyncClient = request.app.state.http_client
 
     if server_id is not None:
-        server: dict[str, Any] | None = await ServerRepository(db).get(server_id)
+        server: dict[str, Any] | None = await ServerService(db).get(server_id)
         if server is None:
             return JSONResponse({"error": f"Server '{server_id}' not found"}, status_code=503)
     else:
@@ -115,7 +115,7 @@ async def proxy_request(
     # Use provided upstream_path (stripped of slug prefix) or the raw request path
     req_path = upstream_path or str(request.url.path)
 
-    repo = RequestRepository(db)
+    repo = RequestService(db)
     proxy_req = ProxyRequest(
         protocol=handler.protocol_name,
         method=request.method,
@@ -171,7 +171,7 @@ async def _handle_non_streaming(
     body_bytes: bytes,
     publisher: RedisPublisher,
     request_id: str,
-    repo: RequestRepository,
+    repo: RequestService,
     handler: ProtocolHandler,
     start_time: float,
 ) -> Response:
@@ -234,7 +234,7 @@ async def _handle_streaming(
     body_bytes: bytes,
     publisher: RedisPublisher,
     request_id: str,
-    repo: RequestRepository,
+    repo: RequestService,
     handler: ProtocolHandler,
     start_time: float,
 ) -> Response:
