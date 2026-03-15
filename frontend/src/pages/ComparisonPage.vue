@@ -256,20 +256,18 @@ onMounted(async () => {
           <pre
             class="p-3 text-xs leading-5 bg-white overflow-x-auto"
           ><template v-for="(line, idx) in reqLinesA" :key="idx"><span
-              :class="{
-                'bg-red-100 block -mx-3 px-3': line.type === 'removed',
-              }"
-            >{{ line.text }}</span
-          ></template></pre>
+            :class="{
+              'bg-red-100 block -mx-3 px-3': line.type === 'removed',
+            }"
+          >{{ line.text }}</span></template></pre>
           <!-- Right (B) -->
           <pre
             class="p-3 text-xs leading-5 bg-white overflow-x-auto"
           ><template v-for="(line, idx) in reqLinesB" :key="idx"><span
-              :class="{
-                'bg-green-100 block -mx-3 px-3': line.type === 'added',
-              }"
-            >{{ line.text }}</span
-          ></template></pre>
+            :class="{
+              'bg-green-100 block -mx-3 px-3': line.type === 'added',
+            }"
+          >{{ line.text }}</span></template></pre>
         </div>
         <div v-else class="px-4 py-3 text-xs text-gray-400 italic">
           Requests are identical
@@ -290,20 +288,18 @@ onMounted(async () => {
           <pre
             class="p-3 text-xs leading-5 bg-white overflow-x-auto whitespace-pre-wrap break-words"
           ><template v-for="(line, idx) in linesA" :key="idx"><span
-              :class="{
-                'bg-red-100 block -mx-3 px-3': line.type === 'removed',
-              }"
-            >{{ line.text }}</span
-          ></template></pre>
+            :class="{
+              'bg-red-100 block -mx-3 px-3': line.type === 'removed',
+            }"
+          >{{ line.text }}</span></template></pre>
           <!-- Right (B) -->
           <pre
             class="p-3 text-xs leading-5 bg-white overflow-x-auto whitespace-pre-wrap break-words"
           ><template v-for="(line, idx) in linesB" :key="idx"><span
-              :class="{
-                'bg-green-100 block -mx-3 px-3': line.type === 'added',
-              }"
-            >{{ line.text }}</span
-          ></template></pre>
+            :class="{
+              'bg-green-100 block -mx-3 px-3': line.type === 'added',
+            }"
+          >{{ line.text }}</span></template></pre>
         </div>
       </div>
     </div>

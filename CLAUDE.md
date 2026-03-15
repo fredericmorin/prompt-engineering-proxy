@@ -19,73 +19,11 @@ LLM API proxy with web UI for capturing, inspecting, editing, and replaying LLM 
 ### Make (preferred)
 ```bash
 make setup      # Install all dependencies (backend + frontend)
-make dev        # Start full dev environment via Docker Compose (hot reload)
-make debug      # Start Redis + backend (reload) + frontend dev server (no Docker)
 make check      # Run all checks: lint + type-check + test
-make lint       # Ruff check + ESLint
-make typecheck  # ty type checking
 make test       # pytest + frontend tests
 make format     # Auto-format all code (Ruff + Prettier)
-make build      # Build frontend + Docker image
 make docker     # Build production Docker image
 make clean      # Remove caches, .venv, node_modules, dist
-```
-
-### Backend
-```bash
-# Install dependencies
-uv sync
-
-# Run dev server (auto-reload)
-uv run uvicorn prompt_engineering_proxy.main:app --reload --port 8000
-
-# Run tests
-uv run pytest
-
-# Lint and format
-uv run ruff check src/
-uv run ruff format src/
-
-# Type check
-uv run ty check src/
-```
-
-### Frontend
-```bash
-cd frontend
-
-# Install dependencies
-npm install
-
-# Run dev server
-npm run dev
-
-# Build for production
-npm run build
-
-# Lint
-npm run lint
-
-# Format
-npm run format
-```
-
-### Infrastructure
-```bash
-# Start full dev environment (Redis + backend + frontend, all hot-reload)
-docker compose -f docker-compose.dev.yml up
-
-# Stop dev environment
-docker compose -f docker-compose.dev.yml down
-
-# Start Redis only (for use with make debug)
-docker compose up -d redis
-
-# Build production Docker image
-docker build -t prompt-engineering-proxy .
-
-# Run production image
-docker run -p 8000:8000 -e REDIS_URL=redis://host:6379 prompt-engineering-proxy
 ```
 
 ## Project Structure
