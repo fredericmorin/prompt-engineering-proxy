@@ -1,35 +1,44 @@
 # Stage 1: Build frontend
-FROM node:20-slim AS frontend-build
+FROM node:22-slim AS frontend-builder
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm ci
 COPY frontend/ ./
 RUN npm run build
 
-# Stage 2: Backend + serve built frontend
-FROM python:3.12-slim AS runtime
-
-# Install uv
+# Stage 2: Build the Python virtual environment
+FROM python:3.12-slim AS python-builder
+WORKDIR /app
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+COPY pyproject.toml uv.lock README.md ./
+COPY src/ src/
+RUN uv sync --no-dev --compile-bytecode
+
+# Stage 3: Minimal runtime image
+FROM python:3.13-slim
+# Install curl for HEALTHCHECK
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Install Python dependencies
-COPY pyproject.toml uv.lock* ./
-RUN uv sync --frozen --no-dev
+# Python environment (includes installed sharetree package)
+COPY --from=python-builder /app/.venv /app/.venv
+# Source tree (needed for editable install path references and alembic.ini resolution)
+COPY --from=python-builder /app/src /app/src
+# Built frontend assets
+COPY --from=frontend-builder /app/static/ static/
 
-# Copy backend source
-COPY src/ ./src/
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONUNBUFFERED=1 \
+    PREN_PROXY_DATA_PATH=/data \
+    PREN_PROXY_SHARE_ROOT=/files
 
-# Copy built frontend assets
-COPY --from=frontend-build /app/frontend/dist ./frontend/dist
+VOLUME ["/data", "/files"]
 
-# Create data directory for SQLite
-RUN mkdir -p /app/data
-
-ENV PROXY_HOST=0.0.0.0
-ENV PROXY_PORT=8000
-ENV DATABASE_PATH=/app/data/proxy.db
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD curl -f http://localhost:8000/api/health || exit 1
 
 EXPOSE 8000
 
