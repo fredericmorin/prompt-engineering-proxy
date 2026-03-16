@@ -139,42 +139,42 @@ An LLM proxy with an interactive web interface for capturing, inspecting, editin
 ## Tech Stack
 
 ### Backend
-| Technology | Purpose |
-|---|---|
-| **Python 3.12+** | Runtime |
-| **FastAPI** | HTTP framework — proxy endpoints + management API |
-| **uvicorn** | ASGI server |
-| **httpx** | Async HTTP client for upstream LLM requests (streaming support) |
-| **sse-starlette** | SSE response support for pushing events to web UI |
-| **Redis** | Pub/sub for real-time event fan-out to web UI clients |
+| Technology                     | Purpose                                                           |
+| ------------------------------ | ----------------------------------------------------------------- |
+| **Python 3.12+**               | Runtime                                                           |
+| **FastAPI**                    | HTTP framework — proxy endpoints + management API                 |
+| **uvicorn**                    | ASGI server                                                       |
+| **httpx**                      | Async HTTP client for upstream LLM requests (streaming support)   |
+| **sse-starlette**              | SSE response support for pushing events to web UI                 |
+| **Redis**                      | Pub/sub for real-time event fan-out to web UI clients             |
 | **SQLite** (via **aiosqlite**) | Persistent storage for request/response history and configuration |
-| **Pydantic** | Request/response validation and serialization |
-| **python-ulid** | Sortable unique IDs for requests |
+| **Pydantic**                   | Request/response validation and serialization                     |
+| **python-ulid**                | Sortable unique IDs for requests                                  |
 
 ### Frontend
-| Technology | Purpose |
-|---|---|
-| **Vue.js 3** | UI framework (Composition API + `<script setup>`) |
-| **Vite** | Build tool and dev server |
-| **Tailwind CSS v4** | Utility-first styling |
-| **shadcn-vue** | UI component library |
-| **Vue Router** | Client-side routing |
-| **Pinia** | State management |
-| **EventSource / fetch** | SSE client for live updates from backend |
-| **CodeMirror 6** or **Monaco** | JSON/text editor for request editing |
+| Technology                     | Purpose                                           |
+| ------------------------------ | ------------------------------------------------- |
+| **Vue.js 3**                   | UI framework (Composition API + `<script setup>`) |
+| **Vite**                       | Build tool and dev server                         |
+| **Tailwind CSS v4**            | Utility-first styling                             |
+| **shadcn-vue**                 | UI component library                              |
+| **Vue Router**                 | Client-side routing                               |
+| **Pinia**                      | State management                                  |
+| **EventSource / fetch**        | SSE client for live updates from backend          |
+| **CodeMirror 6** or **Monaco** | JSON/text editor for request editing              |
 
 ### Dev & Tooling
-| Technology | Purpose |
-|---|---|
-| **uv** | Python package manager and virtual environment |
-| **Ruff** | Python linter and formatter |
-| **ty** | Python type checker (from the Ruff/Astral toolchain) |
-| **pytest** | Python test framework |
-| **ESLint + Prettier** | Frontend linting and formatting |
-| **Docker** | Production container image |
-| **Docker Compose** | Local dev environment (Redis + app) |
-| **Make** | Task runner — setup, dev, check, build shortcuts |
-| **GitHub Actions** | CI (lint/type-check/test) + CD (Docker image build/push) |
+| Technology            | Purpose                                                  |
+| --------------------- | -------------------------------------------------------- |
+| **uv**                | Python package manager and virtual environment           |
+| **Ruff**              | Python linter and formatter                              |
+| **ty**                | Python type checker (from the Ruff/Astral toolchain)     |
+| **pytest**            | Python test framework                                    |
+| **ESLint + Prettier** | Frontend linting and formatting                          |
+| **Docker**            | Production container image                               |
+| **Docker Compose**    | Local dev environment (Redis + app)                      |
+| **Make**              | Task runner — setup, dev, check, build shortcuts         |
+| **GitHub Actions**    | CI (lint/type-check/test) + CD (Docker image build/push) |
 
 ## Project Structure
 
@@ -295,82 +295,82 @@ prompt-engineering-proxy/
 ## Database Schema
 
 ### `servers` — Upstream LLM server configuration
-| Column | Type | Description |
-|---|---|---|
-| `id` | TEXT PK | ULID |
-| `name` | TEXT | Display name |
-| `base_url` | TEXT | Upstream base URL (e.g., `https://api.openai.com`) |
-| `protocol` | TEXT | `openai_chat`, `openai_responses`, `anthropic` |
-| `api_key` | TEXT NULL | Default API key (optional, client key takes precedence) |
-| `is_default` | BOOLEAN | Default server for new requests |
-| `created_at` | TEXT | ISO 8601 timestamp |
+| Column       | Type      | Description                                             |
+| ------------ | --------- | ------------------------------------------------------- |
+| `id`         | TEXT PK   | ULID                                                    |
+| `name`       | TEXT      | Display name                                            |
+| `base_url`   | TEXT      | Upstream base URL (e.g., `https://api.openai.com`)      |
+| `protocol`   | TEXT      | `openai_chat`, `openai_responses`, `anthropic`          |
+| `api_key`    | TEXT NULL | Default API key (optional, client key takes precedence) |
+| `is_default` | BOOLEAN   | Default server for new requests                         |
+| `created_at` | TEXT      | ISO 8601 timestamp                                      |
 
 ### `proxy_requests` — Captured request/response pairs
-| Column | Type | Description |
-|---|---|---|
-| `id` | TEXT PK | ULID (sortable by time) |
-| `server_id` | TEXT FK | References `servers.id` |
-| `protocol` | TEXT | Protocol type used |
-| `method` | TEXT | HTTP method |
-| `path` | TEXT | Request path (e.g., `/v1/chat/completions`) |
-| `request_headers` | TEXT | JSON — request headers (API keys redacted) |
-| `request_body` | TEXT | JSON — full request body |
-| `response_status` | INTEGER | HTTP status code |
-| `response_headers` | TEXT | JSON — response headers |
-| `response_body` | TEXT | JSON — full response body (assembled from stream if SSE) |
-| `is_streaming` | BOOLEAN | Whether SSE streaming was used |
-| `model` | TEXT | Model name extracted from request |
-| `duration_ms` | INTEGER | Total request duration |
-| `ttfb_ms` | INTEGER NULL | Time to first byte/token (streaming) |
-| `prompt_tokens` | INTEGER NULL | Token usage from response |
-| `completion_tokens` | INTEGER NULL | Token usage from response |
-| `error` | TEXT NULL | Error message if request failed |
-| `parent_id` | TEXT NULL FK | References `proxy_requests.id` — links replayed/forked requests to original |
-| `created_at` | TEXT | ISO 8601 timestamp |
+| Column              | Type         | Description                                                                 |
+| ------------------- | ------------ | --------------------------------------------------------------------------- |
+| `id`                | TEXT PK      | ULID (sortable by time)                                                     |
+| `server_id`         | TEXT FK      | References `servers.id`                                                     |
+| `protocol`          | TEXT         | Protocol type used                                                          |
+| `method`            | TEXT         | HTTP method                                                                 |
+| `path`              | TEXT         | Request path (e.g., `/v1/chat/completions`)                                 |
+| `request_headers`   | TEXT         | JSON — request headers (API keys redacted)                                  |
+| `request_body`      | TEXT         | JSON — full request body                                                    |
+| `response_status`   | INTEGER      | HTTP status code                                                            |
+| `response_headers`  | TEXT         | JSON — response headers                                                     |
+| `response_body`     | TEXT         | JSON — full response body (assembled from stream if SSE)                    |
+| `is_streaming`      | BOOLEAN      | Whether SSE streaming was used                                              |
+| `model`             | TEXT         | Model name extracted from request                                           |
+| `duration_ms`       | INTEGER      | Total request duration                                                      |
+| `ttfb_ms`           | INTEGER NULL | Time to first byte/token (streaming)                                        |
+| `prompt_tokens`     | INTEGER NULL | Token usage from response                                                   |
+| `completion_tokens` | INTEGER NULL | Token usage from response                                                   |
+| `error`             | TEXT NULL    | Error message if request failed                                             |
+| `parent_id`         | TEXT NULL FK | References `proxy_requests.id` — links replayed/forked requests to original |
+| `created_at`        | TEXT         | ISO 8601 timestamp                                                          |
 
 ### `request_tags` — Optional tags/labels for organizing requests
-| Column | Type | Description |
-|---|---|---|
+| Column       | Type    | Description                    |
+| ------------ | ------- | ------------------------------ |
 | `request_id` | TEXT FK | References `proxy_requests.id` |
-| `tag` | TEXT | Tag string |
-| PRIMARY KEY | | (`request_id`, `tag`) |
+| `tag`        | TEXT    | Tag string                     |
+| PRIMARY KEY  |         | (`request_id`, `tag`)          |
 
 ## API Endpoints
 
 ### Proxy Endpoints (transparent pass-through)
-| Method | Path | Description |
-|---|---|---|
-| `POST` | `/v1/chat/completions` | Proxy → default openai_chat server |
+| Method | Path                                 | Description                          |
+| ------ | ------------------------------------ | ------------------------------------ |
+| `POST` | `/v1/chat/completions`               | Proxy → default openai_chat server   |
 | `POST` | `/{server-slug}/v1/chat/completions` | Proxy → specific server by name slug |
-| `POST` | `/v1/responses` | Proxy → OpenAI Responses upstream |
-| `POST` | `/v1/messages` | Proxy → Anthropic Messages upstream |
-| `GET` | `/v1/models` | Proxy → upstream model listing |
+| `POST` | `/v1/responses`                      | Proxy → OpenAI Responses upstream    |
+| `POST` | `/v1/messages`                       | Proxy → Anthropic Messages upstream  |
+| `GET`  | `/v1/models`                         | Proxy → upstream model listing       |
 
 Each configured server gets a URL prefix derived from its name (e.g. server "OpenAI Prod" → `http://proxy/openai-prod/v1`). This lets multiple clients target different upstream servers simultaneously. The prefix is shown (with copy button) on the Settings page.
 
 ### Management API (`/api/`)
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/requests` | List captured requests (paginated, filterable) |
-| `GET` | `/api/requests/:id` | Get single request detail |
-| `DELETE` | `/api/requests/:id` | Delete a captured request |
-| `DELETE` | `/api/requests` | Bulk delete (with filters) |
-| `GET` | `/api/requests/:id/export` | Export as JSON or cURL |
-| `POST` | `/api/requests/:id/replay` | Replay request (optionally with edits) |
-| `POST` | `/api/send` | Send a new request (from editor) |
-| `GET` | `/api/servers` | List configured servers |
-| `POST` | `/api/servers` | Add a server |
-| `PUT` | `/api/servers/:id` | Update a server |
-| `DELETE` | `/api/servers/:id` | Delete a server |
-| `GET` | `/api/servers/:id/models` | Query models from upstream server (includes `loaded` status for Ollama) |
-| `DELETE` | `/api/servers/:id/models/:name` | Unload a model from Ollama memory |
-| `GET` | `/api/events` | SSE stream — lifecycle events (`request.started/completed/error`) |
-| `GET` | `/api/requests/:id/stream` | SSE stream — live token chunks for a specific request |
+| Method   | Path                            | Description                                                             |
+| -------- | ------------------------------- | ----------------------------------------------------------------------- |
+| `GET`    | `/api/requests`                 | List captured requests (paginated, filterable)                          |
+| `GET`    | `/api/requests/:id`             | Get single request detail                                               |
+| `DELETE` | `/api/requests/:id`             | Delete a captured request                                               |
+| `DELETE` | `/api/requests`                 | Bulk delete (with filters)                                              |
+| `GET`    | `/api/requests/:id/export`      | Export as JSON or cURL                                                  |
+| `POST`   | `/api/requests/:id/replay`      | Replay request (optionally with edits)                                  |
+| `POST`   | `/api/send`                     | Send a new request (from editor)                                        |
+| `GET`    | `/api/servers`                  | List configured servers                                                 |
+| `POST`   | `/api/servers`                  | Add a server                                                            |
+| `PUT`    | `/api/servers/:id`              | Update a server                                                         |
+| `DELETE` | `/api/servers/:id`              | Delete a server                                                         |
+| `GET`    | `/api/servers/:id/models`       | Query models from upstream server (includes `loaded` status for Ollama) |
+| `DELETE` | `/api/servers/:id/models/:name` | Unload a model from Ollama memory                                       |
+| `GET`    | `/api/events`                   | SSE stream — lifecycle events (`request.started/completed/error`)       |
+| `GET`    | `/api/requests/:id/stream`      | SSE stream — live token chunks for a specific request                   |
 
 ### Redis Pub/Sub Channels
-| Channel | Events |
-|---|---|
-| `proxy:requests` | `request.started`, `request.completed`, `request.error` |
+| Channel                     | Events                                                  |
+| --------------------------- | ------------------------------------------------------- |
+| `proxy:requests`            | `request.started`, `request.completed`, `request.error` |
 | `proxy:stream:{request_id}` | `chunk` — individual SSE chunks for live streaming view |
 
 ## Development Phases
@@ -462,26 +462,14 @@ make docker     # Build production Docker image
 make clean      # Remove build artifacts, caches, .venv
 ```
 
-### Docker (Production)
-```bash
-# Build
-docker build -t prompt-engineering-proxy .
-
-# Run (with external Redis)
-docker run -p 8000:8000 -e REDIS_URL=redis://host:6379 prompt-engineering-proxy
-
-# Or use docker compose for everything
-docker compose --profile prod up
-```
-
 ### Configuration
 
 Settings are loaded from environment variables:
 
 ```bash
-export PROXY_PORT=8000
-export REDIS_URL=redis://localhost:6379
-export DATABASE_PATH=data/proxy.db
+export PRENV_PROXY_PROXY_PORT=8000
+export PRENV_PROXY_REDIS_URL=redis://localhost:6379
+export PRENV_PROXY_DATA_PATH=data
 ```
 
 ### Usage
@@ -508,7 +496,7 @@ client = openai.OpenAI(
 
 The proxy prefix for each server is shown with a copy button on the Settings page (`/settings`).
 
-Then open `http://localhost:5173` to see live traffic and use the prompt engineering tools.
+Then open `http://localhost:8000` to see live traffic and use the prompt engineering tools.
 
 ## CI/CD
 

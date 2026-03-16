@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from prompt_engineering_proxy.api.router import router as api_router
-from prompt_engineering_proxy.config import settings
+from prompt_engineering_proxy.settings import settings
 from prompt_engineering_proxy.proxy.router import router as proxy_router
 from prompt_engineering_proxy.realtime.publisher import RedisPublisher
 from prompt_engineering_proxy.storage.database import Database
@@ -23,23 +23,23 @@ STATIC_DIR = Path(__file__).resolve().parent.parent.parent / "static"
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     # Startup
-    logging.basicConfig(level=settings.log_level.upper())
+    logging.basicConfig(level=settings.LOG_LEVEL.upper())
     logger.info("Starting Prompt Engineering Proxy")
 
     # Initialize database
     db = Database()
-    await db.connect(settings.database_path)
+    await db.connect(str(settings.DATA_PATH / "proxy.db"))
     await db.init_db()
     app.state.db = db
 
     # Connect to Redis
     publisher = RedisPublisher()
     try:
-        await publisher.connect(settings.redis_url)
+        await publisher.connect(settings.REDIS_URL)
         app.state.redis = publisher
-        logger.info("Connected to Redis at %s", settings.redis_url)
+        logger.info("Connected to Redis at %s", settings.REDIS_URL)
     except Exception:
-        logger.warning("Redis not available at %s — real-time features disabled", settings.redis_url)
+        logger.warning("Redis not available at %s — real-time features disabled", settings.REDIS_URL)
         app.state.redis = publisher  # Store even if not connected; health check reports status
 
     # Shared async HTTP client for upstream requests (connection pooling)
@@ -48,6 +48,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         follow_redirects=True,
     )
     app.state.http_client = http_client
+
+    logger.info("Prompt Engineering Proxy ready")
 
     yield
 
@@ -70,7 +72,7 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # Proxy routes (/v1/*)
+    # Proxy routes (/{server_slug}/*)
     app.include_router(proxy_router)
 
     # Management API (/api/*)

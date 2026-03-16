@@ -6,7 +6,7 @@ services:
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -14,12 +14,12 @@ services:
   # Production profile — run the full app in Docker
   app:
     build: .
-    profiles: ["prod"]
+    profiles: [ "prod" ]
     ports:
       - "8000:8000"
     environment:
-      - REDIS_URL=redis://redis:6379
-      - DATABASE_PATH=/app/data/proxy.db
+      - PREN_PROXY_REDIS_URL=redis://redis:6379
+      - PREN_PROXY_DATA_PATH=/app/data
     volumes:
       - app-data:/app/data
     depends_on:

@@ -36,7 +36,7 @@ jobs:
       - name: Backend checks
         run: make check-backend
         env:
-          REDIS_URL: redis://localhost:6379
+          PREN_PROXY_REDIS_URL: redis://localhost:6379
 
   frontend:
     name: Frontend checks

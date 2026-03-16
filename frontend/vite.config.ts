@@ -14,12 +14,4 @@ export default defineConfig({
     outDir: "../static",
     emptyOutDir: true,
   },
-  server: {
-    host: true,
-    proxy: {
-      "/api": process.env.BACKEND_URL ?? "http://localhost:8000",
-      "/v1": process.env.BACKEND_URL ?? "http://localhost:8000",
-      "/health": process.env.BACKEND_URL ?? "http://localhost:8000",
-    },
-  },
 });

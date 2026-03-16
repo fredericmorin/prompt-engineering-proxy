@@ -284,11 +284,16 @@ onMounted(async () => {
   const forkAt =
     forkAtParam !== undefined ? parseInt(forkAtParam, 10) : undefined;
   if (fromId) await loadFromRequest(fromId, forkAt);
+
+  // Auto-fetch models for the selected server
+  if (selectedServerId.value) await fetchModels();
 });
 
 watch(selectedServerId, () => {
   models.value = [];
   modelsError.value = "";
+  model.value = "";
+  fetchModels();
 });
 </script>
 

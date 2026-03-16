@@ -114,7 +114,7 @@ frontend/src/         # Vue.js 3 SPA
 
 ### General
 - Commit messages: imperative mood, concise subject line (e.g., "Add request filtering to dashboard")
-- No secrets in code — use environment variables for API keys
+- No secrets in code — use environment variables for API keys, never commit .env files
 - ULIDs for all entity IDs (sortable, no sequential exposure)
 - ISO 8601 for all timestamps
 - JSON for all structured data storage in SQLite TEXT columns
@@ -161,11 +161,13 @@ frontend/src/         # Vue.js 3 SPA
 
 ## Environment Variables
 
-| Variable | Default | Description |
-|---|---|---|
-| `PROXY_HOST` | `0.0.0.0` | Bind address |
-| `PROXY_PORT` | `8000` | Bind port |
-| `REDIS_URL` | `redis://localhost:6379` | Redis connection URL |
-| `DATABASE_PATH` | `data/proxy.db` | SQLite database file path |
-| `LOG_LEVEL` | `info` | Logging level |
-| `CORS_ORIGINS` | `http://localhost:5173` | Allowed CORS origins (comma-separated) |
+`PRENV_PROXY_` prefix for all vars:
+
+| Variable                    | Default                  | Description                            |
+| --------------------------- | ------------------------ | -------------------------------------- |
+| `PRENV_PROXY_PROXY_HOST`    | `0.0.0.0`                | Bind address                           |
+| `PRENV_PROXY_PROXY_PORT`    | `8000`                   | Bind port                              |
+| `PRENV_PROXY_REDIS_URL`     | `redis://localhost:6379` | Redis connection URL                   |
+| `PRENV_PROXY_DATABASE_PATH` | `data`                   | SQLite database folder path            |
+| `PRENV_PROXY_LOG_LEVEL`     | `info`                   | Logging level                          |
+| `PRENV_PROXY_CORS_ORIGINS`  | `http://localhost:8000`  | Allowed CORS origins (comma-separated) |

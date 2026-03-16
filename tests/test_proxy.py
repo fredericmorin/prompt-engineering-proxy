@@ -27,17 +27,15 @@ from prompt_engineering_proxy.storage.services import RequestService, ServerServ
 @pytest_asyncio.fixture
 async def app_client(tmp_path: Any) -> AsyncGenerator[tuple[AsyncClient, Database, FastAPI]]:
     """AsyncClient wired to a test app with an in-memory DB and a mock http client."""
-    db_path = str(tmp_path / "test.db")
+    import prompt_engineering_proxy.settings as config_module
 
-    import prompt_engineering_proxy.config as config_module
-
-    original_path = config_module.settings.database_path
-    config_module.settings.database_path = db_path
+    original_path = config_module.settings.DATA_PATH
+    config_module.settings.DATA_PATH = tmp_path
 
     app = create_app()
 
     db = Database()
-    await db.connect(db_path)
+    await db.connect(str(tmp_path / "test.db"))
     await db.init_db()
     app.state.db = db
     app.state.redis = RedisPublisher()  # not connected — OK for tests
@@ -54,7 +52,7 @@ async def app_client(tmp_path: Any) -> AsyncGenerator[tuple[AsyncClient, Databas
         yield ac, db, app
 
     await db.close()
-    config_module.settings.database_path = original_path
+    config_module.settings.DATA_PATH = original_path
 
 
 async def _add_test_server(db: Database) -> Server:

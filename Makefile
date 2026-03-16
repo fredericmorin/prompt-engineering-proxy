@@ -73,8 +73,8 @@ check-frontend: frontend/node_modules ## Run frontend checks (lint + type-check 
 # Default target
 .PHONY: format
 format: .venv/deps frontend/node_modules ## Auto-format all code
-	uv run ruff check --fix src/
-	uv run ruff format src/
+	uv run ruff check --fix
+	uv run ruff format
 	cd frontend && npx eslint --fix src/
 	cd frontend && npx prettier --write "src/**/*.{ts,vue,css}"
 

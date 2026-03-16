@@ -6,48 +6,49 @@ services:
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 3s
       retries: 5
 
   backend:
     image: python:3.12-slim
-    working_dir: /app
-    command: >
-      sh -c "pip install uv -q &&
-             uv sync --frozen &&
-             uv run uvicorn prompt_engineering_proxy.main:app
-               --host 0.0.0.0 --port 8000 --reload"
+    depends_on:
+      redis:
+        # condition: service_healthy
+        condition: service_started
     ports:
       - "8000:8000"
     environment:
-      - REDIS_URL=redis://redis:6379
-      - DATABASE_PATH=/app/data/proxy.db
+      - PREN_PROXY_REDIS_URL=redis://redis:6379
+      - PREN_PROXY_DATA_PATH=data
+    working_dir: /app
     volumes:
       - .:/app
-      - backend-data:/app/data
       - backend-venv:/app/.venv
-    depends_on:
-      redis:
-        condition: service_healthy
+    entrypoint: [ "/bin/sh", "-c" ]
+    command:
+      - |
+        set -ex
+        pip install uv -q
+        uv sync --frozen
+        uv run uvicorn prompt_engineering_proxy.main:app --host 0.0.0.0 --port 8000 --reload
 
   frontend:
     image: node:20-slim
-    working_dir: /app/frontend
-    command: sh -c "npm install && npm run dev"
-    ports:
-      - "5173:5173"
-    environment:
-      - BACKEND_URL=http://backend:8000
+    working_dir: /app
     volumes:
-      - ./frontend:/app/frontend
+      - .:/app
       - frontend-modules:/app/frontend/node_modules
-    depends_on:
-      - backend
+    entrypoint: [ "/bin/sh", "-c" ]
+    command:
+      - |
+        set -ex
+        cd frontend
+        npm install
+        npm run build -- --watch
 
 volumes:
   redis-data:
-  backend-data:
   backend-venv:
   frontend-modules:

@@ -8,7 +8,7 @@ from typing import Any
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 
-from prompt_engineering_proxy.config import settings
+from prompt_engineering_proxy.settings import settings
 from prompt_engineering_proxy.realtime.events import CHANNEL_REQUESTS, CHANNEL_STREAM_PREFIX
 from prompt_engineering_proxy.realtime.subscriber import RedisSubscriber
 from prompt_engineering_proxy.storage.database import Database
@@ -39,7 +39,7 @@ async def sse_events(request: Request) -> StreamingResponse:
     disconnect = asyncio.Event()
 
     async def generator() -> AsyncGenerator[str, None]:
-        async for chunk in _stream_channel(settings.redis_url, CHANNEL_REQUESTS, disconnect):
+        async for chunk in _stream_channel(settings.REDIS_URL, CHANNEL_REQUESTS, disconnect):
             if await request.is_disconnected():
                 disconnect.set()
                 break
@@ -73,7 +73,7 @@ async def sse_request_stream(request: Request, request_id: str) -> StreamingResp
     async def generator() -> AsyncGenerator[str, None]:
         import json
 
-        async for chunk in _stream_channel(settings.redis_url, channel, disconnect):
+        async for chunk in _stream_channel(settings.REDIS_URL, channel, disconnect):
             if await request.is_disconnected():
                 disconnect.set()
                 break
