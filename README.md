@@ -467,9 +467,9 @@ make clean      # Remove build artifacts, caches, .venv
 Settings are loaded from environment variables:
 
 ```bash
-export PRENV_PROXY_PROXY_PORT=8000
-export PRENV_PROXY_REDIS_URL=redis://localhost:6379
-export PRENV_PROXY_DATA_PATH=data
+export PREN_PROXY_PROXY_PORT=8000
+export PREN_PROXY_REDIS_URL=redis://localhost:6379
+export PREN_PROXY_DATA_PATH=data
 ```
 
 ### Usage

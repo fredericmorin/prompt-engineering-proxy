@@ -161,13 +161,13 @@ frontend/src/         # Vue.js 3 SPA
 
 ## Environment Variables
 
-`PRENV_PROXY_` prefix for all vars:
+`PREN_PROXY_` prefix for all vars:
 
-| Variable                    | Default                  | Description                            |
-| --------------------------- | ------------------------ | -------------------------------------- |
-| `PRENV_PROXY_PROXY_HOST`    | `0.0.0.0`                | Bind address                           |
-| `PRENV_PROXY_PROXY_PORT`    | `8000`                   | Bind port                              |
-| `PRENV_PROXY_REDIS_URL`     | `redis://localhost:6379` | Redis connection URL                   |
-| `PRENV_PROXY_DATABASE_PATH` | `data`                   | SQLite database folder path            |
-| `PRENV_PROXY_LOG_LEVEL`     | `info`                   | Logging level                          |
-| `PRENV_PROXY_CORS_ORIGINS`  | `http://localhost:8000`  | Allowed CORS origins (comma-separated) |
+| Variable                   | Default                  | Description                            |
+| -------------------------- | ------------------------ | -------------------------------------- |
+| `PREN_PROXY_PROXY_HOST`    | `0.0.0.0`                | Bind address                           |
+| `PREN_PROXY_PROXY_PORT`    | `8000`                   | Bind port                              |
+| `PREN_PROXY_REDIS_URL`     | `redis://localhost:6379` | Redis connection URL                   |
+| `PREN_PROXY_DATABASE_PATH` | `data`                   | SQLite database folder path            |
+| `PREN_PROXY_LOG_LEVEL`     | `info`                   | Logging level                          |
+| `PREN_PROXY_CORS_ORIGINS`  | `http://localhost:8000`  | Allowed CORS origins (comma-separated) |
