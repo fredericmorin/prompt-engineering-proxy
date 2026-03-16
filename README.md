@@ -187,7 +187,6 @@ prompt-engineering-proxy/
 ├── Dockerfile                      # Multi-stage production image
 ├── docker-compose.yml              # Local dev (Redis + app)
 ├── pyproject.toml                  # Python project config (uv)
-├── .env.example                    # Environment variable template
 │
 ├── .github/
 │   └── workflows/
@@ -476,11 +475,13 @@ docker compose --profile prod up
 ```
 
 ### Configuration
+
+Settings are loaded from environment variables:
+
 ```bash
-# .env
-PROXY_PORT=8000
-REDIS_URL=redis://localhost:6379
-DATABASE_PATH=data/proxy.db
+export PROXY_PORT=8000
+export REDIS_URL=redis://localhost:6379
+export DATABASE_PATH=data/proxy.db
 ```
 
 ### Usage

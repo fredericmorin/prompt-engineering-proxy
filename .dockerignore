@@ -8,6 +8,5 @@ __pycache__
 frontend/node_modules
 frontend/dist
 data/
-.env
 *.md
 LICENSE
