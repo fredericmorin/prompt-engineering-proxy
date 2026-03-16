@@ -6,7 +6,7 @@ from pathlib import Path
 import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from prompt_engineering_proxy.api.router import router as api_router
@@ -77,22 +77,6 @@ def create_app() -> FastAPI:
 
     # Management API (/api/*)
     app.include_router(api_router)
-
-    @app.get("/health")
-    async def health() -> JSONResponse:
-        db: Database = app.state.db
-        publisher: RedisPublisher = app.state.redis
-
-        db_ok = await db.ping()
-        redis_ok = await publisher.ping()
-
-        status = "ok" if db_ok else "degraded"
-        status_code = 200 if db_ok else 503
-
-        return JSONResponse(
-            content={"status": status, "database": db_ok, "redis": redis_ok},
-            status_code=status_code,
-        )
 
     # Serve built frontend static files if the directory exists
     if STATIC_DIR.is_dir():
