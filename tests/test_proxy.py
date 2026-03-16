@@ -158,12 +158,12 @@ async def test_non_streaming_proxy_stores_request(
     requests = await repo.list_recent(limit=1)
     assert len(requests) == 1
     req = requests[0]
-    assert req["protocol"] == "openai_chat"
-    assert req["model"] == "gpt-4o"
-    assert req["response_status"] == 200
-    assert req["prompt_tokens"] == 5
-    assert req["completion_tokens"] == 3
-    assert req["is_streaming"] == 0
+    assert req.protocol == "openai_chat"
+    assert req.model == "gpt-4o"
+    assert req.response_status == 200
+    assert req.prompt_tokens == 5
+    assert req.completion_tokens == 3
+    assert req.is_streaming is False
 
 
 @pytest.mark.asyncio
@@ -183,7 +183,7 @@ async def test_non_streaming_proxy_redacts_api_key(
 
     repo = RequestService(db)
     requests = await repo.list_recent(limit=1)
-    stored_headers = json.loads(requests[0]["request_headers"])
+    stored_headers = json.loads(requests[0].request_headers)
     auth = stored_headers.get("authorization", "")
     # Full key must NOT be stored
     assert "verysecretkey" not in auth
@@ -225,7 +225,7 @@ async def test_non_streaming_proxy_upstream_error_returns_502(
 
     repo = RequestService(db)
     requests = await repo.list_recent(limit=1)
-    assert requests[0]["error"] is not None
+    assert requests[0].error is not None
 
 
 # ---------------------------------------------------------------------------
@@ -300,11 +300,12 @@ async def test_streaming_proxy_stores_assembled_response(
     requests = await repo.list_recent(limit=1)
     assert len(requests) == 1
     req = requests[0]
-    assert req["is_streaming"] == 1
-    assert req["response_status"] == 200
+    assert req.is_streaming is True
+    assert req.response_status == 200
 
     # Assembled content should be stored
-    body = json.loads(req["response_body"])
+    assert req.response_body is not None
+    body = json.loads(req.response_body)
     choices = body.get("choices", [])
     assert len(choices) == 1
     assert choices[0]["message"]["content"] == "Hi!"
@@ -337,8 +338,8 @@ async def test_prefixed_route_routes_to_correct_server(
     # Check stored record has correct server_id and clean path
     repo = RequestService(db)
     requests = await repo.list_recent(limit=1)
-    assert requests[0]["server_id"] == server.id
-    assert requests[0]["path"] == "/v1/chat/completions"
+    assert requests[0].server_id == server.id
+    assert requests[0].path == "/v1/chat/completions"
 
 
 @pytest.mark.asyncio

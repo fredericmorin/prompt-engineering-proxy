@@ -19,7 +19,7 @@ from prompt_engineering_proxy.realtime.events import (
 )
 from prompt_engineering_proxy.realtime.publisher import RedisPublisher
 from prompt_engineering_proxy.storage.database import Database
-from prompt_engineering_proxy.storage.models import ProxyRequest
+from prompt_engineering_proxy.storage.models import ProxyRequest, Server
 from prompt_engineering_proxy.storage.services import RequestService, ServerService
 
 logger = logging.getLogger(__name__)
@@ -60,14 +60,14 @@ def _redact_headers(headers: dict[str, str]) -> dict[str, str]:
     return result
 
 
-async def _get_server(db: Database, protocol: str) -> dict[str, Any] | None:
+async def _get_server(db: Database, protocol: str) -> Server | None:
     """Return the default (or first) server matching the protocol."""
     repo = ServerService(db)
     servers = await repo.list_all()
-    default = next((s for s in servers if s["protocol"] == protocol and s["is_default"]), None)
+    default = next((s for s in servers if s.protocol == protocol and s.is_default), None)
     if default:
         return default
-    return next((s for s in servers if s["protocol"] == protocol), None)
+    return next((s for s in servers if s.protocol == protocol), None)
 
 
 async def proxy_request(
@@ -87,7 +87,7 @@ async def proxy_request(
     http_client: httpx.AsyncClient = request.app.state.http_client
 
     if server_id is not None:
-        server: dict[str, Any] | None = await ServerService(db).get(server_id)
+        server = await ServerService(db).get(server_id)
         if server is None:
             return JSONResponse({"error": f"Server '{server_id}' not found"}, status_code=503)
     else:
@@ -98,8 +98,8 @@ async def proxy_request(
                 status_code=503,
             )
 
-    upstream_base = str(server["base_url"])
-    captured_server_id = str(server["id"])
+    upstream_base = server.base_url
+    captured_server_id = server.id
 
     body_bytes = await request.body()
     try:

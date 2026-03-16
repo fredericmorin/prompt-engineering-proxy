@@ -20,9 +20,9 @@ def _get_repo(request: Request) -> ServerService:
     return ServerService(db)
 
 
-def _redact_server(server: dict[str, object]) -> dict[str, object]:
-    result = dict(server)
-    key = result.get("api_key")
+def _redact_server(server: Server) -> dict[str, object]:
+    result = server.model_dump()
+    key = server.api_key
     if isinstance(key, str) and key:
         result["api_key"] = f"{key[:4]}...{key[-4:]}" if len(key) > 8 else "[REDACTED]"
     return result
@@ -79,7 +79,7 @@ async def create_server(request: Request, body: ServerCreate) -> JSONResponse:
     server = Server(**data)
     await repo.create(server)
     created = await repo.get(server.id)
-    return JSONResponse(content=_redact_server(created or {}), status_code=201)
+    return JSONResponse(content=_redact_server(created or server), status_code=201)
 
 
 @router.get("/servers/{server_id}")
@@ -106,7 +106,9 @@ async def update_server(request: Request, server_id: str, body: ServerUpdate) ->
     if updates:
         await repo.update(server_id, **updates)
     updated = await repo.get(server_id)
-    return JSONResponse(content=_redact_server(updated or {}))
+    if updated is None:
+        raise HTTPException(status_code=404, detail="Server not found")
+    return JSONResponse(content=_redact_server(updated))
 
 
 @router.delete("/servers/{server_id}", status_code=204)

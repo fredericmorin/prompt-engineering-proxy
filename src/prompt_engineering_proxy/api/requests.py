@@ -1,7 +1,5 @@
 """Management API — request CRUD endpoints."""
 
-from typing import Any
-
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
 
@@ -26,13 +24,13 @@ async def list_requests(
 ) -> JSONResponse:
     """Return a lightweight list of captured requests (body fields excluded)."""
     repo = _get_repo(request)
-    rows: list[dict[str, Any]] = await repo.list_filtered(
+    rows = await repo.list_filtered(
         limit=limit,
         offset=offset,
         protocol=protocol or None,
         model=model or None,
     )
-    return JSONResponse(content=rows)
+    return JSONResponse(content=[r.model_dump() for r in rows])
 
 
 @router.get("/requests/{request_id}")
@@ -42,7 +40,7 @@ async def get_request(request: Request, request_id: str) -> JSONResponse:
     row = await repo.get(request_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Request not found")
-    return JSONResponse(content=dict(row))
+    return JSONResponse(content=row.model_dump())
 
 
 @router.delete("/requests/{request_id}", status_code=204)

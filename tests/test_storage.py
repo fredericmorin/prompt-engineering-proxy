@@ -42,7 +42,7 @@ async def test_server_repository_crud(database: Database) -> None:
 
     fetched = await repo.get(server.id)
     assert fetched is not None
-    assert fetched["name"] == "Test Server"
+    assert fetched.name == "Test Server"
 
     all_servers = await repo.list_all()
     assert len(all_servers) == 1
@@ -68,7 +68,7 @@ async def test_request_repository_crud(database: Database) -> None:
 
     fetched = await repo.get(req.id)
     assert fetched is not None
-    assert fetched["model"] == "gpt-4"
+    assert fetched.model == "gpt-4"
 
     recent = await repo.list_recent(limit=10)
     assert len(recent) == 1

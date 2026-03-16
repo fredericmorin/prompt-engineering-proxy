@@ -39,19 +39,17 @@ async def list_server_models(request: Request, server_id: str) -> JSONResponse:
     if server is None:
         raise HTTPException(status_code=404, detail="Server not found")
 
-    base_url = str(server["base_url"]).rstrip("/")
+    base_url = server.base_url.rstrip("/")
     headers: dict[str, str] = {}
-    api_key = server.get("api_key")
+    api_key = server.api_key
     if isinstance(api_key, str) and api_key:
-        protocol = str(server.get("protocol", ""))
-        if protocol == "anthropic":
+        if server.protocol == "anthropic":
             headers["x-api-key"] = api_key
             headers["anthropic-version"] = "2023-06-01"
         else:
             headers["Authorization"] = f"Bearer {api_key}"
 
-    protocol = str(server.get("protocol", ""))
-    is_ollama = protocol in ("ollama_chat", "ollama_generate")
+    is_ollama = server.protocol in ("ollama_chat", "ollama_generate")
 
     try:
         if is_ollama:
@@ -109,9 +107,9 @@ async def unload_model(request: Request, server_id: str, model_name: str) -> JSO
     if server is None:
         raise HTTPException(status_code=404, detail="Server not found")
 
-    base_url = str(server["base_url"]).rstrip("/")
+    base_url = server.base_url.rstrip("/")
     headers: dict[str, str] = {}
-    api_key = server.get("api_key")
+    api_key = server.api_key
     if isinstance(api_key, str) and api_key:
         headers["Authorization"] = f"Bearer {api_key}"
 

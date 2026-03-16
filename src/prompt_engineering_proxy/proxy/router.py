@@ -63,7 +63,7 @@ async def prefixed_proxy(request: Request, server_slug: str, path: str) -> Respo
     return await proxy_request(
         request,
         handler,
-        server_id=str(server["id"]),
+        server_id=server.id,
         upstream_path=f"/v1/{path}",
     )
 
@@ -95,7 +95,7 @@ async def ollama_prefixed_proxy(request: Request, server_slug: str, path: str) -
     return await proxy_request(
         request,
         handler,
-        server_id=str(server["id"]),
+        server_id=server.id,
         upstream_path=f"/api/{path}",
     )
 

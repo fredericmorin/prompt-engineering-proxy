@@ -87,12 +87,12 @@ async def _execute_request(
     if server is None:
         raise HTTPException(status_code=404, detail="Server not found")
 
-    protocol = str(server.get("protocol", "openai_chat"))
+    protocol = server.protocol or "openai_chat"
     path = _PROTOCOL_PATHS.get(protocol, "/v1/chat/completions")
-    upstream_url = str(server["base_url"]).rstrip("/") + path
+    upstream_url = server.base_url.rstrip("/") + path
 
     forward_headers: dict[str, str] = {"Content-Type": "application/json"}
-    api_key = server.get("api_key")
+    api_key = server.api_key
     if isinstance(api_key, str) and api_key:
         if protocol == "anthropic":
             forward_headers["x-api-key"] = api_key
@@ -257,11 +257,11 @@ async def replay_request(request: Request, request_id: str, body: ReplayRequest)
     if original is None:
         raise HTTPException(status_code=404, detail="Request not found")
 
-    server_id = original.get("server_id")
+    server_id = original.server_id
     if not isinstance(server_id, str) or not server_id:
         raise HTTPException(status_code=400, detail="Original request has no associated server")
 
-    original_body: dict[str, Any] = json.loads(str(original["request_body"]))
+    original_body: dict[str, Any] = json.loads(original.request_body)
     if body.body:
         original_body.update(body.body)
 
