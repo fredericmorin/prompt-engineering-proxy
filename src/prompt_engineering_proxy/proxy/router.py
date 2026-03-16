@@ -98,3 +98,24 @@ async def ollama_prefixed_proxy(request: Request, server_slug: str, path: str) -
         server_id=str(server["id"]),
         upstream_path=f"/api/{path}",
     )
+
+
+_OLLAMA_HANDLER_FOR_PATH_PASSTHRU = {}
+
+
+@router.get("/{server_slug}/api/{full_path:path}")
+@router.get("/{server_slug}/v1/{full_path:path}")
+async def api_fallback(request: Request, server_slug: str, full_path: str = "") -> JSONResponse:
+    db: Database = request.app.state.db
+    repo = ServerService(db)
+    server = await repo.get_by_slug(server_slug)
+    if server is None:
+        return JSONResponse(
+            {"error": f"No server found with slug '{server_slug}'"},
+            status_code=404,
+        )
+
+    return JSONResponse(
+        content={"status": "proxy method not found"},
+        status_code=404,
+    )

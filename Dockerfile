@@ -35,7 +35,7 @@ ENV PATH="/app/.venv/bin:$PATH" \
     PREN_PROXY_DATA_PATH=/data \
     PREN_PROXY_SHARE_ROOT=/files
 
-VOLUME ["/data", "/files"]
+VOLUME ["/data"]
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD curl -f http://localhost:8000/api/health || exit 1

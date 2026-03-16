@@ -21,7 +21,7 @@ services:
       - "8000:8000"
     environment:
       - PREN_PROXY_REDIS_URL=redis://redis:6379
-      - PREN_PROXY_DATA_PATH=data
+      - PREN_PROXY_DATA_PATH=/app/data
     working_dir: /app
     volumes:
       - .:/app

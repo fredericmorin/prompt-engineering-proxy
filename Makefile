@@ -40,11 +40,9 @@ dev: ## Start full dev environment via Docker Compose (hot reload)
 
 .PHONY: debug
 debug: .venv/deps frontend/node_modules ## Start all services locally (no Docker)
-	@echo "Starting backend and frontend..."
-	@trap 'kill 0' EXIT; \
-		uv run uvicorn prompt_engineering_proxy.main:app --reload --port 8000 & \
-		cd frontend && npm run dev & \
-		wait
+	(cd frontend && npm run build) && \
+	docker compose -f docker-compose.dev.yml up -d redis && \
+	PREN_PROXY_REDIS_URL=redis://127.0.0.1:6379 uv run uvicorn prompt_engineering_proxy.main:app --reload --host 0.0.0.0 --port 8000 \
 
 .PHONY: dev-backend
 dev-backend: .venv/deps ## Start backend dev server only

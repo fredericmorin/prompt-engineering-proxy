@@ -30,3 +30,12 @@ async def health(request: Request) -> JSONResponse:
         content={"status": status, "database": db_ok, "redis": redis_ok},
         status_code=status_code,
     )
+
+
+@router.get("")
+@router.get("/{full_path:path}")
+async def api_fallback(full_path: str = "") -> JSONResponse:
+    return JSONResponse(
+        content={"status": "api endpoint not found"},
+        status_code=404,
+    )
