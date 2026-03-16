@@ -52,6 +52,26 @@ class ProxyRequest(BaseModel):
     created_at: str = Field(default_factory=now_iso)
 
 
+class ProxyRequestSummary(BaseModel):
+    """Lightweight request representation excluding body/header columns."""
+
+    id: str
+    server_id: str | None = None
+    protocol: str
+    method: str
+    path: str
+    model: str | None = None
+    response_status: int | None = None
+    is_streaming: bool = False
+    duration_ms: int | None = None
+    ttfb_ms: int | None = None
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
+    error: str | None = None
+    parent_id: str | None = None
+    created_at: str = Field(default_factory=now_iso)
+
+
 class RequestTag(BaseModel):
     request_id: str
     tag: str

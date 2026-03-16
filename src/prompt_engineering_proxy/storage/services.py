@@ -1,7 +1,10 @@
-from typing import Any
-
 from prompt_engineering_proxy.storage.database import Database
-from prompt_engineering_proxy.storage.models import ProxyRequest, Server, name_to_slug
+from prompt_engineering_proxy.storage.models import (
+    ProxyRequest,
+    ProxyRequestSummary,
+    Server,
+    name_to_slug,
+)
 
 
 class ServerService:
@@ -26,21 +29,25 @@ class ServerService:
         await self.db.commit()
         return server
 
-    async def get(self, server_id: str) -> dict[str, Any] | None:
-        return await self.db.fetchone("SELECT * FROM servers WHERE id = ?", (server_id,))
+    async def get(self, server_id: str) -> Server | None:
+        row = await self.db.fetchone("SELECT * FROM servers WHERE id = ?", (server_id,))
+        if row is None:
+            return None
+        return Server.model_validate(row)
 
-    async def list_all(self) -> list[dict[str, Any]]:
-        return await self.db.fetchall("SELECT * FROM servers ORDER BY created_at DESC")
+    async def list_all(self) -> list[Server]:
+        rows = await self.db.fetchall("SELECT * FROM servers ORDER BY created_at DESC")
+        return [Server.model_validate(row) for row in rows]
 
-    async def get_by_slug(self, slug: str) -> dict[str, Any] | None:
+    async def get_by_slug(self, slug: str) -> Server | None:
         """Find a server by proxy slug — checks configured proxy_slug first, then name-derived slug."""
         servers = await self.list_all()
         # Prefer explicit proxy_slug match
-        explicit = next((s for s in servers if s.get("proxy_slug") == slug), None)
+        explicit = next((s for s in servers if s.proxy_slug == slug), None)
         if explicit:
             return explicit
         # Fall back to name-derived slug
-        return next((s for s in servers if name_to_slug(str(s["name"])) == slug), None)
+        return next((s for s in servers if name_to_slug(s.name) == slug), None)
 
     async def update(self, server_id: str, **fields: object) -> None:
         if not fields:
@@ -95,14 +102,18 @@ class RequestService:
         await self.db.commit()
         return request
 
-    async def get(self, request_id: str) -> dict[str, Any] | None:
-        return await self.db.fetchone("SELECT * FROM proxy_requests WHERE id = ?", (request_id,))
+    async def get(self, request_id: str) -> ProxyRequest | None:
+        row = await self.db.fetchone("SELECT * FROM proxy_requests WHERE id = ?", (request_id,))
+        if row is None:
+            return None
+        return ProxyRequest.model_validate(row)
 
-    async def list_recent(self, limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
-        return await self.db.fetchall(
+    async def list_recent(self, limit: int = 50, offset: int = 0) -> list[ProxyRequest]:
+        rows = await self.db.fetchall(
             "SELECT * FROM proxy_requests ORDER BY created_at DESC LIMIT ? OFFSET ?",
             (limit, offset),
         )
+        return [ProxyRequest.model_validate(row) for row in rows]
 
     async def list_filtered(
         self,
@@ -110,7 +121,7 @@ class RequestService:
         offset: int = 0,
         protocol: str | None = None,
         model: str | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[ProxyRequestSummary]:
         """List requests with optional protocol/model filters, excluding body columns."""
         conditions: list[str] = []
         params: list[str | int] = []
@@ -122,7 +133,7 @@ class RequestService:
             params.append(model)
         where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
         params.extend([limit, offset])
-        return await self.db.fetchall(
+        rows = await self.db.fetchall(
             f"""SELECT id, server_id, protocol, method, path, model,
                        response_status, is_streaming, duration_ms, ttfb_ms,
                        prompt_tokens, completion_tokens, error, parent_id, created_at
@@ -131,6 +142,7 @@ class RequestService:
                 ORDER BY created_at DESC LIMIT ? OFFSET ?""",
             tuple(params),
         )
+        return [ProxyRequestSummary.model_validate(row) for row in rows]
 
     async def update(
         self,

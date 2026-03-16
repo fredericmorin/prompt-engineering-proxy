@@ -3,7 +3,6 @@
 import asyncio
 import logging
 from collections.abc import AsyncGenerator
-from typing import Any
 
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
@@ -57,14 +56,14 @@ async def sse_request_stream(request: Request, request_id: str) -> StreamingResp
     """
     db: Database = request.app.state.db
     repo = RequestService(db)
-    row: dict[str, Any] | None = await repo.get(request_id)
+    row = await repo.get(request_id)
 
     async def already_done() -> AsyncGenerator[str, None]:
         import json
 
         yield f"data: {json.dumps({'type': 'done', 'request_id': request_id})}\n\n"
 
-    if row and row.get("response_body") is not None:
+    if row and row.response_body is not None:
         return StreamingResponse(already_done(), headers=SSE_HEADERS)
 
     channel = f"{CHANNEL_STREAM_PREFIX}{request_id}"
