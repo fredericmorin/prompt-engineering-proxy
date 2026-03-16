@@ -114,7 +114,7 @@ frontend/src/         # Vue.js 3 SPA
 
 ### General
 - Commit messages: imperative mood, concise subject line (e.g., "Add request filtering to dashboard")
-- No secrets in code — use .env for API keys, never commit .env files
+- No secrets in code — use environment variables for API keys
 - ULIDs for all entity IDs (sortable, no sequential exposure)
 - ISO 8601 for all timestamps
 - JSON for all structured data storage in SQLite TEXT columns
