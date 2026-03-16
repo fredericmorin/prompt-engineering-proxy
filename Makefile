@@ -27,6 +27,11 @@ frontend/node_modules: frontend/package.json frontend/package-lock.json
 .PHONY: setup
 setup: .venv/deps frontend/node_modules ## Start all services locally (no Docker)
 
+.PHONY: upgrade
+upgrade: .venv/bin/uv
+	.venv/bin/uv lock --upgrade
+	cd frontend && npm update
+
 # ── Development ──────────────────────────────────────────────────────────────
 
 .PHONY: dev

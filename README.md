@@ -141,7 +141,7 @@ An LLM proxy with an interactive web interface for capturing, inspecting, editin
 ### Backend
 | Technology                     | Purpose                                                           |
 | ------------------------------ | ----------------------------------------------------------------- |
-| **Python 3.12+**               | Runtime                                                           |
+| **Python 3.14+**               | Runtime                                                           |
 | **FastAPI**                    | HTTP framework — proxy endpoints + management API                 |
 | **uvicorn**                    | ASGI server                                                       |
 | **httpx**                      | Async HTTP client for upstream LLM requests (streaming support)   |
@@ -419,9 +419,9 @@ Each configured server gets a URL prefix derived from its name (e.g. server "Ope
 ## Getting Started
 
 ### Prerequisites
-- Python 3.12+
-- Node.js 20+
-- Redis 7+
+- Python 3.14+
+- Node.js 24+
+- Redis 8+
 - uv (Python package manager)
 
 ### Quick Start (with Make)
@@ -504,7 +504,7 @@ Then open `http://localhost:8000` to see live traffic and use the prompt enginee
 Runs on every push and pull request:
 1. **Backend checks**: Ruff lint, Ruff format check, ty type-check, pytest
 2. **Frontend checks**: ESLint, Prettier format check, TypeScript type-check, build
-3. **Matrix**: Python 3.12+ × Node 20+
+3. **Matrix**: Python 3.14+ × Node 24+
 4. **Services**: Redis (via `services` container) for integration tests
 
 ### GitHub Actions — Release (`release.yml`)
@@ -517,7 +517,7 @@ Runs on every push to `main`/`master` and on version tags (`v*`):
 
 The production Docker image uses a multi-stage build:
 1. **Stage 1 — Frontend build**: Node.js, `npm ci`, `npm run build` → static assets
-2. **Stage 2 — Backend**: Python 3.12-slim, `uv sync --frozen`, copy built frontend into static serving directory
+2. **Stage 2 — Backend**: Python 3.14-slim, `uv sync --frozen`, copy built frontend into static serving directory
 3. **Runtime**: uvicorn serves both the API and static frontend assets
 
 The image is self-contained — only requires an external Redis instance.

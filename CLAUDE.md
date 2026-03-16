@@ -8,7 +8,7 @@ LLM API proxy with web UI for capturing, inspecting, editing, and replaying LLM 
 
 ## Tech Stack
 
-- **Backend**: Python 3.12+ / FastAPI / httpx / Redis / SQLite (aiosqlite) / SSE
+- **Backend**: Python 3.14+ / FastAPI / httpx / Redis / SQLite (aiosqlite) / SSE
 - **Frontend**: Vue.js 3 (Composition API) / TypeScript / Vite / Tailwind CSS v4 / shadcn-vue / Pinia
 - **Type checking**: ty (Python type checker)
 - **Tooling**: uv (Python), npm (JS), Ruff (lint/format), ty (type-check), pytest, ESLint (with typescript-eslint) + Prettier
@@ -155,7 +155,7 @@ frontend/src/         # Vue.js 3 SPA
 - Pushes to GitHub Container Registry (`ghcr.io`)
 
 ### Docker Image
-- Multi-stage build: (1) frontend build with Node.js, (2) backend with Python 3.12-slim
+- Multi-stage build: (1) frontend build with Node.js, (2) backend with Python 3.14-slim
 - Built frontend is served as static files by the backend
 - Only requires external Redis at runtime
 

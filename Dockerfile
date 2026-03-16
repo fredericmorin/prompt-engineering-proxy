@@ -1,5 +1,5 @@
 # Stage 1: Build frontend
-FROM node:22-slim AS frontend-builder
+FROM node:24-slim AS frontend-builder
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/package-lock.json* ./
 RUN npm ci
@@ -7,7 +7,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # Stage 2: Build the Python virtual environment
-FROM python:3.12-slim AS python-builder
+FROM python:3.14-slim AS python-builder
 WORKDIR /app
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 COPY pyproject.toml uv.lock README.md ./
@@ -15,7 +15,7 @@ COPY src/ src/
 RUN uv sync --no-dev --compile-bytecode
 
 # Stage 3: Minimal runtime image
-FROM python:3.13-slim
+FROM python:3.14-slim
 # Install curl for HEALTHCHECK
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
