@@ -20,7 +20,6 @@ from prompt_engineering_proxy.realtime.events import (
     REQUEST_COMPLETED,
     REQUEST_ERROR,
     REQUEST_STARTED,
-    REQUEST_STOPPED,
     ProxyEvent,
 )
 from prompt_engineering_proxy.realtime.publisher import RedisPublisher
