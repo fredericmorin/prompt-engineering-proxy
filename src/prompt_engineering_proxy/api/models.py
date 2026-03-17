@@ -6,6 +6,7 @@ import httpx
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse
 
+from prompt_engineering_proxy.proxy.protocols import PROTOCOL_HANDLERS
 from prompt_engineering_proxy.storage.database import Database
 from prompt_engineering_proxy.storage.services import ServerService
 
@@ -49,42 +50,32 @@ async def list_server_models(request: Request, server_id: str) -> JSONResponse:
         else:
             headers["Authorization"] = f"Bearer {api_key}"
 
+    handler = PROTOCOL_HANDLERS.get(server.protocol)
+    models_path = handler.models_endpoint if handler else None
+
+    if models_path is None:
+        return JSONResponse(content={"models": []})
+
     is_ollama = server.protocol in ("ollama_chat", "ollama_generate")
 
     try:
+        models_resp, loaded_names = await asyncio.gather(
+            http_client.get(f"{base_url}{models_path}", headers=headers),
+            _fetch_loaded_models(http_client, base_url, headers),
+        )
+        models_resp.raise_for_status()
+
+        assert handler is not None
+        raw_models = handler.parse_models_response(models_resp.json())
+
         if is_ollama:
-            models_resp, loaded_names = await asyncio.gather(
-                http_client.get(f"{base_url}/api/tags", headers=headers),
-                _fetch_loaded_models(http_client, base_url, headers),
-            )
-            models_resp.raise_for_status()
-            data = models_resp.json()
-            # Ollama format: {"models": [{"name": "...", "model": "...", ...}]}
-            raw_models = data.get("models", []) if isinstance(data, dict) else []
             models: list[dict[str, object]] = [
-                {
-                    **m,
-                    "id": str(m.get("name", m.get("model", ""))),
-                    "loaded": str(m.get("name", m.get("model", ""))) in loaded_names,
-                }
-                for m in raw_models
-                if isinstance(m, dict)
+                {**m, "loaded": str(m.get("id", "")) in loaded_names} for m in raw_models
             ]
+        elif loaded_names:
+            models = [{**m, "loaded": str(m.get("id", "")) in loaded_names} for m in raw_models]
         else:
-            models_resp, loaded_names = await asyncio.gather(
-                http_client.get(f"{base_url}/v1/models", headers=headers),
-                _fetch_loaded_models(http_client, base_url, headers),
-            )
-            models_resp.raise_for_status()
-            data = models_resp.json()
-            # OpenAI format: {"data": [...], "object": "list"}
-            raw = data.get("data", data) if isinstance(data, dict) else data
-            if loaded_names:
-                models = [
-                    {**m, "loaded": str(m.get("id", "")) in loaded_names} if isinstance(m, dict) else m for m in raw
-                ]
-            else:
-                models = raw
+            models = list(raw_models)
 
         return JSONResponse(content={"models": models})
     except httpx.HTTPStatusError as exc:

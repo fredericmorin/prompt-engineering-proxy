@@ -70,6 +70,35 @@ async def _get_server(db: Database, protocol: str) -> Server | None:
     return next((s for s in servers if s.protocol == protocol), None)
 
 
+async def passthrough_proxy(
+    request: Request,
+    server: Server,
+    upstream_path: str,
+) -> Response:
+    """Forward a request to upstream without DB recording (for support/utility endpoints)."""
+    http_client: httpx.AsyncClient = request.app.state.http_client
+    body_bytes = await request.body()
+    forward_headers = {k: v for k, v in request.headers.items() if k.lower() not in _SKIP_REQUEST_HEADERS}
+    upstream_url = server.base_url.rstrip("/") + upstream_path
+    if request.url.query:
+        upstream_url += "?" + request.url.query
+    try:
+        resp = await http_client.request(
+            method=request.method,
+            url=upstream_url,
+            headers=forward_headers,
+            content=body_bytes,
+        )
+    except httpx.RequestError as exc:
+        return JSONResponse({"error": f"Upstream request failed: {exc}"}, status_code=502)
+    return Response(
+        content=resp.content,
+        status_code=resp.status_code,
+        headers={k: v for k, v in resp.headers.items() if k.lower() not in _HOP_BY_HOP},
+        media_type=resp.headers.get("content-type"),
+    )
+
+
 async def proxy_request(
     request: Request,
     handler: ProtocolHandler,
