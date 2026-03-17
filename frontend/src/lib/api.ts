@@ -153,6 +153,14 @@ export async function sendRequest(
   return response.json();
 }
 
+export async function stopStream(requestId: string): Promise<void> {
+  const response = await fetch(`${BASE_URL}/api/requests/${requestId}/stop`, {
+    method: "POST",
+  });
+  if (!response.ok && response.status !== 404)
+    throw new Error(`Failed to stop stream: ${response.status}`);
+}
+
 export async function replayRequest(
   requestId: string,
   bodyOverrides?: Record<string, unknown>,

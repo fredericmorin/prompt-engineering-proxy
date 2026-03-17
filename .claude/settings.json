@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "output=$(make format && make check 2>&1); rc=$?; if [ $rc -ne 0 ]; then echo \"{\\\"systemMessage\\\": $(printf 'make check failed:\\n%s' \"$output\" | tail -c 4000 | jq -Rs .)}\"; fi",
+            "timeout": 120,
+            "statusMessage": "Running make format && make check…"
+          }
+        ]
+      }
+    ]
+  }
+}

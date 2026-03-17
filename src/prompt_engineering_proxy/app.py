@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -48,6 +49,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         follow_redirects=True,
     )
     app.state.http_client = http_client
+
+    # Registry of active streaming cancel events keyed by request_id
+    app.state.stream_cancel_events: dict[str, asyncio.Event] = {}
 
     logger.info("Prompt Engineering Proxy ready")
 
