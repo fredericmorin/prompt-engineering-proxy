@@ -20,6 +20,7 @@ from prompt_engineering_proxy.realtime.events import (
     REQUEST_COMPLETED,
     REQUEST_ERROR,
     REQUEST_STARTED,
+    REQUEST_STOPPED,
     ProxyEvent,
 )
 from prompt_engineering_proxy.realtime.publisher import RedisPublisher
@@ -147,16 +148,23 @@ async def _execute_request(
 
         _stream_fn = tee_ndjson_stream if handler.streaming_format == "ndjson" else tee_sse_stream
 
+        cancel_event: asyncio.Event = asyncio.Event()
+        request.app.state.stream_cancel_events[proxy_req.id] = cancel_event
+
         async def _drain_stream() -> None:
-            async for _ in _stream_fn(
-                upstream_response=upstream_response,
-                publisher=publisher,
-                request_id=proxy_req.id,
-                repo=repo_req,
-                handler=handler,
-                start_time=start_time,
-            ):
-                pass  # chunks already published to Redis and stored
+            try:
+                async for _ in _stream_fn(
+                    upstream_response=upstream_response,
+                    publisher=publisher,
+                    request_id=proxy_req.id,
+                    repo=repo_req,
+                    handler=handler,
+                    start_time=start_time,
+                    cancel_event=cancel_event,
+                ):
+                    pass  # chunks already published to Redis and stored
+            finally:
+                request.app.state.stream_cancel_events.pop(proxy_req.id, None)
 
         asyncio.create_task(_drain_stream())
 
@@ -246,6 +254,17 @@ async def _execute_request(
 async def send_request(request: Request, body: SendRequest) -> JSONResponse:
     """Send a new composed request to an upstream server."""
     return await _execute_request(request, body.server_id, body.body, stream=body.stream)
+
+
+@router.post("/requests/{request_id}/stop")
+async def stop_stream(request: Request, request_id: str) -> JSONResponse:
+    """Stop an active streaming request early, preserving tokens received so far."""
+    cancel_events: dict[str, asyncio.Event] = request.app.state.stream_cancel_events
+    event = cancel_events.get(request_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail="No active stream for this request")
+    event.set()
+    return JSONResponse(content={"request_id": request_id, "stopped": True})
 
 
 @router.post("/requests/{request_id}/replay")

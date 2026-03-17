@@ -1,6 +1,7 @@
 """SSE stream tee — forward raw bytes to the client while publishing chunks to Redis
 and assembling the full response for SQLite storage on completion."""
 
+import asyncio
 import json
 import logging
 import time
@@ -13,6 +14,7 @@ from prompt_engineering_proxy.realtime.events import (
     CHANNEL_REQUESTS,
     CHANNEL_STREAM_PREFIX,
     REQUEST_COMPLETED,
+    REQUEST_STOPPED,
     STREAM_CHUNK,
     ProxyEvent,
 )
@@ -29,18 +31,25 @@ async def tee_ndjson_stream(
     repo: RequestService,
     handler: ProtocolHandler,
     start_time: float,
+    cancel_event: asyncio.Event | None = None,
 ) -> AsyncGenerator[bytes, None]:
     """Async generator that tees an NDJSON stream (used by Ollama):
     - Yields raw bytes to the client (transparent pass-through)
     - Parses each newline-delimited JSON chunk and publishes to Redis
     - On completion, assembles the full response and stores it in SQLite
+    - Stops early if cancel_event is set
     """
     buffer = ""
     data_lines: list[str] = []
     ttfb_ms: list[int | None] = [None]
+    stopped = False
 
     try:
         async for raw_chunk in upstream_response.aiter_bytes():
+            if cancel_event and cancel_event.is_set():
+                stopped = True
+                break
+
             if ttfb_ms[0] is None and raw_chunk:
                 ttfb_ms[0] = int((time.monotonic() - start_time) * 1000)
 
@@ -82,6 +91,7 @@ async def tee_ndjson_stream(
             data_lines=data_lines,
             start_time=start_time,
             ttfb_ms=ttfb_ms[0],
+            stopped=stopped,
         )
 
 
@@ -92,18 +102,25 @@ async def tee_sse_stream(
     repo: RequestService,
     handler: ProtocolHandler,
     start_time: float,
+    cancel_event: asyncio.Event | None = None,
 ) -> AsyncGenerator[bytes, None]:
     """Async generator that tees an SSE stream:
     - Yields raw bytes to the client (transparent pass-through)
     - Parses SSE events and publishes each data chunk to Redis
     - On completion, assembles the full response and stores it in SQLite
+    - Stops early if cancel_event is set
     """
     buffer = ""
     data_lines: list[str] = []
     ttfb_ms: list[int | None] = [None]
+    stopped = False
 
     try:
         async for raw_chunk in upstream_response.aiter_bytes():
+            if cancel_event and cancel_event.is_set():
+                stopped = True
+                break
+
             if ttfb_ms[0] is None and raw_chunk:
                 ttfb_ms[0] = int((time.monotonic() - start_time) * 1000)
 
@@ -149,6 +166,7 @@ async def tee_sse_stream(
             data_lines=data_lines,
             start_time=start_time,
             ttfb_ms=ttfb_ms[0],
+            stopped=stopped,
         )
 
 
@@ -162,6 +180,7 @@ async def _finalize_stream(
     data_lines: list[str],
     start_time: float,
     ttfb_ms: int | None,
+    stopped: bool = False,
 ) -> None:
     """Store the assembled response and publish the completion event."""
     duration_ms = int((time.monotonic() - start_time) * 1000)
@@ -180,6 +199,8 @@ async def _finalize_stream(
     assembled = handler.assemble_streaming_response(parsed)
     prompt_tokens, completion_tokens = handler.extract_usage(assembled)
 
+    event_type = REQUEST_STOPPED if stopped else REQUEST_COMPLETED
+
     try:
         await repo.update(
             request_id,
@@ -194,10 +215,19 @@ async def _finalize_stream(
         await publisher.publish(
             CHANNEL_REQUESTS,
             ProxyEvent(
-                type=REQUEST_COMPLETED,
+                type=event_type,
                 request_id=request_id,
-                data={"status": status_code},
+                data={"status": status_code, "stopped": stopped},
             ),
         )
+        # Also publish a done sentinel on the stream channel so the frontend SSE closes
+        if stopped:
+            await publisher.publish(
+                f"{CHANNEL_STREAM_PREFIX}{request_id}",
+                ProxyEvent(
+                    type="stopped",
+                    request_id=request_id,
+                ),
+            )
     except Exception as exc:
         logger.error("Failed to finalize stream for request %s: %s", request_id, exc)

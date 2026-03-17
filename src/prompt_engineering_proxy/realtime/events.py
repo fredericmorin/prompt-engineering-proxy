@@ -6,6 +6,7 @@ from prompt_engineering_proxy.storage.models import now_iso
 REQUEST_STARTED = "request.started"
 REQUEST_COMPLETED = "request.completed"
 REQUEST_ERROR = "request.error"
+REQUEST_STOPPED = "request.stopped"
 STREAM_CHUNK = "chunk"
 
 # Redis channel names

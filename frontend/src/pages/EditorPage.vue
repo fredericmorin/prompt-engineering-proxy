@@ -192,6 +192,11 @@ function onStreamComplete(requestId: string) {
   router.push({ name: "request-detail", params: { id: requestId } });
 }
 
+function onStreamStopped(requestId: string) {
+  // After a manual stop, navigate to request detail to show the partial response
+  router.push({ name: "request-detail", params: { id: requestId } });
+}
+
 function buildMessages(): Message[] {
   const result: Message[] = [];
   if (systemPrompt.value.trim()) {
@@ -504,7 +509,7 @@ watch(selectedServerId, () => {
           <div class="mb-1 flex items-center justify-between">
             <label class="text-xs font-medium text-gray-600">
               Response
-              <span class="ml-1 text-blue-600 animate-pulse">● streaming</span>
+              <span class="ml-1 text-blue-600 animate-pulse">● live</span>
             </label>
             <button
               class="text-xs text-gray-400 underline hover:text-gray-700"
@@ -521,6 +526,7 @@ watch(selectedServerId, () => {
           <StreamingView
             :request-id="streamingRequestId"
             @done="onStreamComplete(streamingRequestId!)"
+            @stopped="onStreamStopped(streamingRequestId!)"
           />
         </div>
 

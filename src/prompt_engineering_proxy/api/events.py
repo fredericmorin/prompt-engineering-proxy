@@ -77,12 +77,17 @@ async def sse_request_stream(request: Request, request_id: str) -> StreamingResp
                 disconnect.set()
                 break
             yield chunk
-            # Detect [DONE] and emit a done sentinel, then stop
+            # Detect [DONE] sentinel or a "stopped" event and close the stream
             try:
                 payload = json.loads(chunk.removeprefix("data: ").strip())
-                if isinstance(payload, dict) and payload.get("data", {}).get("chunk") == "[DONE]":
-                    yield f"data: {json.dumps({'type': 'done', 'request_id': request_id})}\n\n"
-                    break
+                if isinstance(payload, dict):
+                    chunk_type = payload.get("type")
+                    if payload.get("data", {}).get("chunk") == "[DONE]":
+                        yield f"data: {json.dumps({'type': 'done', 'request_id': request_id})}\n\n"
+                        break
+                    if chunk_type == "stopped":
+                        # Already forwarded above; just stop iterating
+                        break
             except Exception:
                 pass
 
