@@ -8,6 +8,16 @@ class AnthropicHandler(ProtocolHandler):
     def protocol_name(self) -> str:
         return "anthropic"
 
+    @property
+    def models_endpoint(self) -> str | None:
+        return "/v1/models"
+
+    def parse_models_response(self, data: dict[str, object]) -> list[dict[str, object]]:
+        raw = data.get("data", [])
+        if not isinstance(raw, list):
+            return []
+        return [cast(dict[str, object], m) for m in raw if isinstance(m, dict)]
+
     def extract_model(self, body: dict[str, object]) -> str | None:
         model = body.get("model")
         return str(model) if model is not None else None

@@ -3,35 +3,25 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, Response
 
-from prompt_engineering_proxy.proxy.handler import proxy_request
-from prompt_engineering_proxy.proxy.protocols.anthropic import AnthropicHandler
+from prompt_engineering_proxy.proxy.handler import passthrough_proxy, proxy_request
+from prompt_engineering_proxy.proxy.protocols import PROTOCOL_HANDLERS
 from prompt_engineering_proxy.proxy.protocols.base import ProtocolHandler
-from prompt_engineering_proxy.proxy.protocols.ollama_chat import OllamaChatHandler
-from prompt_engineering_proxy.proxy.protocols.ollama_generate import OllamaGenerateHandler
-from prompt_engineering_proxy.proxy.protocols.openai_chat import OpenAIChatHandler
-from prompt_engineering_proxy.proxy.protocols.openai_responses import OpenAIResponsesHandler
 from prompt_engineering_proxy.storage.database import Database
 from prompt_engineering_proxy.storage.services import ServerService
 
 router = APIRouter()
 
-_openai_chat = OpenAIChatHandler()
-_openai_responses = OpenAIResponsesHandler()
-_anthropic = AnthropicHandler()
-_ollama_chat = OllamaChatHandler()
-_ollama_generate = OllamaGenerateHandler()
-
 # Maps the LLM endpoint path (after /v1/) to its protocol handler.
 _HANDLER_FOR_PATH: dict[str, ProtocolHandler] = {
-    "chat/completions": _openai_chat,
-    "responses": _openai_responses,
-    "messages": _anthropic,
+    "chat/completions": PROTOCOL_HANDLERS["openai_chat"],
+    "responses": PROTOCOL_HANDLERS["openai_responses"],
+    "messages": PROTOCOL_HANDLERS["anthropic"],
 }
 
 # Maps Ollama API paths (after /api/) to their protocol handlers.
 _OLLAMA_HANDLER_FOR_PATH: dict[str, ProtocolHandler] = {
-    "chat": _ollama_chat,
-    "generate": _ollama_generate,
+    "chat": PROTOCOL_HANDLERS["ollama_chat"],
+    "generate": PROTOCOL_HANDLERS["ollama_generate"],
 }
 
 
@@ -39,17 +29,10 @@ _OLLAMA_HANDLER_FOR_PATH: dict[str, ProtocolHandler] = {
 async def prefixed_proxy(request: Request, server_slug: str, path: str) -> Response:
     """Proxy POST /{server-slug}/v1/{path} → the specific upstream server identified by slug.
 
-    Clients can target a specific configured server by using its name-derived slug as a
-    URL prefix instead of relying on the default-server fallback.
-
-    Example: server named "OpenAI Prod" → base URL http://localhost:8000/openai-prod/v1
+    Generation endpoints (chat/completions, responses, messages) are intercepted and stored.
+    All other POST paths are forwarded transparently without recording.
     """
     handler = _HANDLER_FOR_PATH.get(path)
-    if handler is None:
-        return JSONResponse(
-            {"error": f"Unsupported endpoint: /v1/{path}"},
-            status_code=404,
-        )
 
     db: Database = request.app.state.db
     repo = ServerService(db)
@@ -59,6 +42,9 @@ async def prefixed_proxy(request: Request, server_slug: str, path: str) -> Respo
             {"error": f"No server found with slug '{server_slug}'"},
             status_code=404,
         )
+
+    if handler is None:
+        return await passthrough_proxy(request, server, f"/v1/{path}")
 
     return await proxy_request(
         request,
@@ -72,16 +58,10 @@ async def prefixed_proxy(request: Request, server_slug: str, path: str) -> Respo
 async def ollama_prefixed_proxy(request: Request, server_slug: str, path: str) -> Response:
     """Proxy POST /{server-slug}/api/{path} → Ollama upstream server identified by slug.
 
-    Clients target Ollama servers using the name-derived slug as a URL prefix.
-
-    Example: server named "Ollama Local" → base URL http://localhost:8000/ollama-local/api
+    Generation endpoints (chat, generate) are intercepted and stored.
+    All other POST paths are forwarded transparently without recording.
     """
     handler = _OLLAMA_HANDLER_FOR_PATH.get(path)
-    if handler is None:
-        return JSONResponse(
-            {"error": f"Unsupported Ollama endpoint: /api/{path}"},
-            status_code=404,
-        )
 
     db: Database = request.app.state.db
     repo = ServerService(db)
@@ -91,6 +71,9 @@ async def ollama_prefixed_proxy(request: Request, server_slug: str, path: str) -
             {"error": f"No server found with slug '{server_slug}'"},
             status_code=404,
         )
+
+    if handler is None:
+        return await passthrough_proxy(request, server, f"/api/{path}")
 
     return await proxy_request(
         request,
@@ -100,12 +83,16 @@ async def ollama_prefixed_proxy(request: Request, server_slug: str, path: str) -
     )
 
 
-_OLLAMA_HANDLER_FOR_PATH_PASSTHRU = {}
-
-
 @router.get("/{server_slug}/api/{full_path:path}")
 @router.get("/{server_slug}/v1/{full_path:path}")
-async def api_fallback(request: Request, server_slug: str, full_path: str = "") -> JSONResponse:
+async def api_get_passthrough(request: Request, server_slug: str, full_path: str = "") -> Response:
+    """Proxy GET /{server-slug}/v1/* and /{server-slug}/api/* to the upstream server.
+
+    Enables transparent passthrough of read-only support endpoints such as:
+    - GET /v1/models  (OpenAI, Anthropic)
+    - GET /api/tags   (Ollama — list available models)
+    - GET /api/ps     (Ollama — list loaded models)
+    """
     db: Database = request.app.state.db
     repo = ServerService(db)
     server = await repo.get_by_slug(server_slug)
@@ -115,7 +102,9 @@ async def api_fallback(request: Request, server_slug: str, full_path: str = "") 
             status_code=404,
         )
 
-    return JSONResponse(
-        content={"status": "proxy method not found"},
-        status_code=404,
-    )
+    raw_path = str(request.url.path)
+    # Reconstruct the upstream path by stripping the server slug prefix
+    slug_prefix = f"/{server_slug}"
+    upstream_path = raw_path[len(slug_prefix) :] if raw_path.startswith(slug_prefix) else raw_path
+
+    return await passthrough_proxy(request, server, upstream_path)

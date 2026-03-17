@@ -11,6 +11,15 @@ class ProtocolHandler(ABC):
         """Return the streaming format: 'sse' (Server-Sent Events) or 'ndjson' (newline-delimited JSON)."""
         return "sse"
 
+    @property
+    def models_endpoint(self) -> str | None:
+        """Relative URL path for listing models (e.g. '/v1/models'). None if unsupported."""
+        return None
+
+    def parse_models_response(self, data: dict[str, object]) -> list[dict[str, object]]:
+        """Parse upstream model listing response into a normalized list with 'id' field."""
+        return []
+
     @abstractmethod
     def extract_model(self, body: dict[str, object]) -> str | None: ...
 

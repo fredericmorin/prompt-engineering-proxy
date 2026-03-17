@@ -1,3 +1,5 @@
+from typing import cast
+
 from prompt_engineering_proxy.proxy.protocols.base import ProtocolHandler
 
 
@@ -9,6 +11,23 @@ class OllamaGenerateHandler(ProtocolHandler):
     @property
     def streaming_format(self) -> str:
         return "ndjson"
+
+    @property
+    def models_endpoint(self) -> str | None:
+        return "/api/tags"
+
+    def parse_models_response(self, data: dict[str, object]) -> list[dict[str, object]]:
+        raw = data.get("models", [])
+        if not isinstance(raw, list):
+            return []
+        result: list[dict[str, object]] = []
+        for item in raw:
+            if not isinstance(item, dict):
+                continue
+            m = cast(dict[str, object], item)
+            name = m.get("name") or m.get("model") or ""
+            result.append({**m, "id": str(name)})
+        return result
 
     def extract_model(self, body: dict[str, object]) -> str | None:
         model = body.get("model")

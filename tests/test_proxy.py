@@ -357,14 +357,25 @@ async def test_prefixed_route_unknown_slug_returns_404(
 
 
 @pytest.mark.asyncio
-async def test_prefixed_route_unsupported_path_returns_404(
+async def test_prefixed_route_unsupported_path_is_passthroughed(
     app_client: tuple[AsyncClient, Database, FastAPI],
 ) -> None:
-    client, db, _app = app_client
+    """Unknown POST paths are forwarded to upstream without recording (passthrough)."""
+    client, db, app = app_client
     await _add_test_server(db)
 
+    app.state.http_client.request = AsyncMock(return_value=httpx.Response(200, json={"ok": True}))
+
     response = await client.post(
-        "/test-openai/v1/unknown/endpoint",
-        json={"model": "gpt-4o", "messages": []},
+        "/test-openai/v1/embeddings",
+        json={"model": "text-embedding-3-small", "input": "hello"},
     )
-    assert response.status_code == 404
+    assert response.status_code == 200
+    assert response.json() == {"ok": True}
+
+    # Passthrough requests must NOT be stored in the database
+    from prompt_engineering_proxy.storage.services import RequestService
+
+    repo = RequestService(db)
+    requests = await repo.list_recent(limit=10)
+    assert len(requests) == 0
