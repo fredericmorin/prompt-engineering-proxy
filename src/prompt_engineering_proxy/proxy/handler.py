@@ -43,6 +43,16 @@ _HOP_BY_HOP = frozenset(
 _SKIP_REQUEST_HEADERS = frozenset({"host", "content-length"})
 
 
+def _get_client_ip(request: Request) -> str | None:
+    """Extract the originating client IP, preferring X-Forwarded-For for proxied deployments."""
+    forwarded_for = request.headers.get("x-forwarded-for")
+    if forwarded_for:
+        return forwarded_for.split(",")[0].strip()
+    if request.client:
+        return request.client.host
+    return None
+
+
 def _redact_headers(headers: dict[str, str]) -> dict[str, str]:
     """Redact API key values: show first 4 + last 4 chars only."""
     result: dict[str, str] = {}
@@ -154,6 +164,7 @@ async def proxy_request(
         is_streaming=is_streaming,
         model=model,
         server_id=captured_server_id,
+        client_ip=_get_client_ip(request),
     )
     await repo.create(proxy_req)
 

@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS proxy_requests (
     completion_tokens INTEGER,
     error TEXT,
     parent_id TEXT REFERENCES proxy_requests(id),
+    client_ip TEXT,
     created_at TEXT NOT NULL
 );
 
@@ -81,6 +82,12 @@ class Database:
         if "proxy_slug" not in existing:
             await conn.execute("ALTER TABLE servers ADD COLUMN proxy_slug TEXT")
             logger.info("Migration: added proxy_slug column to servers")
+
+        cursor = await conn.execute("PRAGMA table_info(proxy_requests)")
+        existing = {row[1] for row in await cursor.fetchall()}
+        if "client_ip" not in existing:
+            await conn.execute("ALTER TABLE proxy_requests ADD COLUMN client_ip TEXT")
+            logger.info("Migration: added client_ip column to proxy_requests")
 
     async def close(self) -> None:
         if self._conn:

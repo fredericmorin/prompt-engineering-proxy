@@ -75,8 +75,8 @@ class RequestService:
             """INSERT INTO proxy_requests
                (id, server_id, protocol, method, path, request_headers, request_body,
                 response_status, response_headers, response_body, is_streaming, model,
-                duration_ms, ttfb_ms, prompt_tokens, completion_tokens, error, parent_id, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                duration_ms, ttfb_ms, prompt_tokens, completion_tokens, error, parent_id, client_ip, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
             (
                 request.id,
                 request.server_id,
@@ -96,6 +96,7 @@ class RequestService:
                 request.completion_tokens,
                 request.error,
                 request.parent_id,
+                request.client_ip,
                 request.created_at,
             ),
         )
@@ -136,7 +137,7 @@ class RequestService:
         rows = await self.db.fetchall(
             f"""SELECT id, server_id, protocol, method, path, model,
                        response_status, is_streaming, duration_ms, ttfb_ms,
-                       prompt_tokens, completion_tokens, error, parent_id, created_at
+                       prompt_tokens, completion_tokens, error, parent_id, client_ip, created_at
                 FROM proxy_requests
                 {where}
                 ORDER BY created_at DESC LIMIT ? OFFSET ?""",
