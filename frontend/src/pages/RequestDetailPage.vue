@@ -41,8 +41,8 @@ watch(
 </script>
 
 <template>
-  <div class="h-full overflow-y-auto">
-    <div class="flex items-center gap-3 px-4 py-3 border-b">
+  <div class="flex h-full flex-col overflow-hidden">
+    <div class="flex shrink-0 items-center gap-3 px-4 py-3 border-b">
       <button
         class="text-sm text-muted-foreground hover:text-foreground"
         @click="router.push({ name: 'dashboard' })"
@@ -80,15 +80,22 @@ watch(
       </div>
     </div>
 
-    <div v-if="notFound" class="p-8 text-center text-sm text-muted-foreground">
+    <div
+      v-if="notFound"
+      class="flex flex-1 items-center justify-center text-sm text-muted-foreground"
+    >
       Request not found.
     </div>
     <div
       v-else-if="!request"
-      class="p-8 text-center text-sm text-muted-foreground"
+      class="flex flex-1 items-center justify-center text-sm text-muted-foreground"
     >
       Loading…
     </div>
-    <RequestDetail v-else :request="request" />
+    <RequestDetail
+      v-else
+      class="flex-1 overflow-hidden min-h-0"
+      :request="request"
+    />
   </div>
 </template>
