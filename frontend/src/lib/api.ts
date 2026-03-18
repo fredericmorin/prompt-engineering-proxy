@@ -198,6 +198,7 @@ export interface ProxyRequest {
   prompt_tokens: number | null;
   completion_tokens: number | null;
   error: string | null;
+  client_ip: string | null;
   parent_id: string | null;
   created_at: string;
 }

@@ -20,9 +20,7 @@ function formatTime(iso: string) {
     class="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 cursor-pointer border-b text-sm transition-colors"
     @click="router.push({ name: 'request-detail', params: { id: request.id } })"
   >
-    <span
-      class="w-16 shrink-0 rounded bg-muted px-1.5 py-0.5 text-center text-xs font-mono font-medium uppercase"
-    >
+    <span class="w-28 shrink-0 rounded bg-muted text-center text-xs font-mono font-medium uppercase">
       {{ request.protocol }}
     </span>
     <span class="w-14 shrink-0 font-mono text-xs text-muted-foreground">{{
@@ -31,6 +29,13 @@ function formatTime(iso: string) {
     <span class="flex-1 truncate font-mono text-xs" :title="request.path">{{
       request.path
     }}</span>
+    <span
+      v-if="request.client_ip"
+      class="hidden lg:block shrink-0 max-w-28 truncate text-xs font-mono text-muted-foreground"
+      :title="request.client_ip"
+    >
+      {{ request.client_ip }}
+    </span>
     <span
       v-if="request.model"
       class="hidden sm:block shrink-0 max-w-32 truncate text-xs text-muted-foreground"
