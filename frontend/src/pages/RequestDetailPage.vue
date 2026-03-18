@@ -92,6 +92,10 @@ watch(
     >
       Loading…
     </div>
-    <RequestDetail v-else class="flex-1 overflow-hidden min-h-0" :request="request" />
+    <RequestDetail
+      v-else
+      class="flex-1 overflow-hidden min-h-0"
+      :request="request"
+    />
   </div>
 </template>
