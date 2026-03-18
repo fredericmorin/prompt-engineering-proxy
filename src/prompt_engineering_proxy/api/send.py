@@ -150,6 +150,12 @@ async def _execute_request(
         cancel_event: asyncio.Event = asyncio.Event()
         request.app.state.stream_cancel_events[proxy_req.id] = cancel_event
 
+        # Create an in-memory chunk buffer so the SSE endpoint can replay
+        # chunks that were published before the frontend subscribed.
+        chunk_buffers: dict[str, list[str]] = request.app.state.stream_chunk_buffers
+        chunk_buffer: list[str] = []
+        chunk_buffers[proxy_req.id] = chunk_buffer
+
         async def _drain_stream() -> None:
             try:
                 async for _ in _stream_fn(
@@ -160,10 +166,12 @@ async def _execute_request(
                     handler=handler,
                     start_time=start_time,
                     cancel_event=cancel_event,
+                    chunk_buffer=chunk_buffer,
                 ):
                     pass  # chunks already published to Redis and stored
             finally:
                 request.app.state.stream_cancel_events.pop(proxy_req.id, None)
+                chunk_buffers.pop(proxy_req.id, None)
 
         asyncio.create_task(_drain_stream())
 
