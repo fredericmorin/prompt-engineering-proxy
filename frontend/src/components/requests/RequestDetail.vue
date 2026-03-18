@@ -140,7 +140,9 @@ function forkAt(msgIndex: number) {
         >
           {{ request.model }}
         </span>
-        <div class="ml-auto flex items-center gap-3 text-xs text-muted-foreground">
+        <div
+          class="ml-auto flex items-center gap-3 text-xs text-muted-foreground"
+        >
           <span v-if="request.prompt_tokens != null">
             ↑ {{ request.prompt_tokens }} / ↓
             {{ request.completion_tokens ?? "?" }} tokens
@@ -173,7 +175,7 @@ function forkAt(msgIndex: number) {
             System
           </div>
           <pre
-            class="whitespace-pre-wrap break-words font-sans text-xs leading-relaxed text-muted-foreground"
+            class="max-h-[calc(16*1.5rem)] overflow-y-auto whitespace-pre-wrap break-words font-sans text-xs leading-relaxed text-muted-foreground"
             >{{ systemPrompt }}</pre
           >
         </div>
@@ -243,7 +245,11 @@ function forkAt(msgIndex: number) {
 
         <!-- Assistant response / streaming output -->
         <div
-          v-if="isActivelyStreaming || assistantResponse !== null || request.response_body !== null"
+          v-if="
+            isActivelyStreaming ||
+            assistantResponse !== null ||
+            request.response_body !== null
+          "
           class="flex flex-row gap-3"
         >
           <!-- Avatar -->
