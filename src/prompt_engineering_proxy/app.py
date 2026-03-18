@@ -53,6 +53,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     # Registry of active streaming cancel events keyed by request_id
     app.state.stream_cancel_events: dict[str, asyncio.Event] = {}
 
+    # In-memory chunk buffers for streaming requests (replay missed chunks on late subscribe)
+    app.state.stream_chunk_buffers: dict[str, list[str]] = {}
+
     logger.info("Prompt Engineering Proxy ready")
 
     yield

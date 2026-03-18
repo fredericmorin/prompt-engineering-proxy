@@ -32,6 +32,7 @@ async def tee_ndjson_stream(
     handler: ProtocolHandler,
     start_time: float,
     cancel_event: asyncio.Event | None = None,
+    chunk_buffer: list[str] | None = None,
 ) -> AsyncGenerator[bytes, None]:
     """Async generator that tees an NDJSON stream (used by Ollama):
     - Yields raw bytes to the client (transparent pass-through)
@@ -64,17 +65,20 @@ async def tee_ndjson_stream(
                 if not line:
                     continue
                 data_lines.append(line)
+                event = ProxyEvent(
+                    type=STREAM_CHUNK,
+                    request_id=request_id,
+                    data={"chunk": line},
+                )
                 try:
                     await publisher.publish(
                         f"{CHANNEL_STREAM_PREFIX}{request_id}",
-                        ProxyEvent(
-                            type=STREAM_CHUNK,
-                            request_id=request_id,
-                            data={"chunk": line},
-                        ),
+                        event,
                     )
                 except Exception:
                     logger.debug("Failed to publish NDJSON chunk for request %s", request_id)
+                if chunk_buffer is not None:
+                    chunk_buffer.append(event.model_dump_json())
 
     except Exception as exc:
         logger.error("NDJSON stream error for request %s: %s", request_id, exc)
@@ -103,6 +107,7 @@ async def tee_sse_stream(
     handler: ProtocolHandler,
     start_time: float,
     cancel_event: asyncio.Event | None = None,
+    chunk_buffer: list[str] | None = None,
 ) -> AsyncGenerator[bytes, None]:
     """Async generator that tees an SSE stream:
     - Yields raw bytes to the client (transparent pass-through)
@@ -139,17 +144,20 @@ async def tee_sse_stream(
                         continue
                     data = line[6:]
                     data_lines.append(data)
+                    event = ProxyEvent(
+                        type=STREAM_CHUNK,
+                        request_id=request_id,
+                        data={"chunk": data},
+                    )
                     try:
                         await publisher.publish(
                             f"{CHANNEL_STREAM_PREFIX}{request_id}",
-                            ProxyEvent(
-                                type=STREAM_CHUNK,
-                                request_id=request_id,
-                                data={"chunk": data},
-                            ),
+                            event,
                         )
                     except Exception:
                         logger.debug("Failed to publish stream chunk for request %s", request_id)
+                    if chunk_buffer is not None:
+                        chunk_buffer.append(event.model_dump_json())
 
     except Exception as exc:
         logger.error("Stream error for request %s: %s", request_id, exc)
