@@ -54,6 +54,7 @@ const response = ref<SendResponse | null>(null);
 const streamingRequestId = ref<string | null>(null);
 const clonedFrom = ref<string | null>(null);
 const forkedAtIndex = ref<number | null>(null);
+const originalBody = ref<Record<string, unknown> | null>(null);
 
 const unloadingModel = ref("");
 const unloadError = ref("");
@@ -158,16 +159,28 @@ async function submit() {
   response.value = null;
   streamingRequestId.value = null;
 
-  const body: Record<string, unknown> = { model: model.value.trim() };
+  // Start from the original body (if cloned) to preserve all fields,
+  // then override the fields the user can edit in the UI.
+  const body: Record<string, unknown> = originalBody.value
+    ? { ...originalBody.value }
+    : {};
+
+  body.model = model.value.trim();
+
   if (isOllamaGenerate.value) {
     body.prompt = prompt.value;
     if (systemPrompt.value.trim()) body.system = systemPrompt.value.trim();
+    else delete body.system;
   } else {
     body.messages = buildMessages();
   }
+
   if (temperature.value !== 1.0) body.temperature = temperature.value;
+  else delete body.temperature;
   if (maxTokens.value !== null) body.max_tokens = maxTokens.value;
+  else delete body.max_tokens;
   if (topP.value !== null) body.top_p = topP.value;
+  else delete body.top_p;
 
   try {
     const result = await sendRequest(
@@ -222,6 +235,7 @@ async function loadFromRequest(id: string, forkAt?: number) {
     const req = await getRequest(id);
     if (!req.request_body) return;
     const body = JSON.parse(req.request_body) as Record<string, unknown>;
+    originalBody.value = { ...body };
     if (typeof body.model === "string") model.value = body.model;
 
     // Try to match server first so isOllamaGenerate computed is correct
