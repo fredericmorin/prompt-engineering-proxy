@@ -106,6 +106,13 @@ const assistantResponse = computed<string | null>(() => {
         .join("\n");
       if (text) return text;
     }
+    // Ollama Chat: message.content
+    const message = body.message as { content?: unknown } | undefined;
+    if (message?.content !== undefined) {
+      return extractTextContent(message.content);
+    }
+    // Ollama Generate: response (string)
+    if (typeof body.response === "string") return body.response;
     return null;
   } catch {
     return null;
