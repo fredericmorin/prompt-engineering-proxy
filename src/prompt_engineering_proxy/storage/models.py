@@ -49,6 +49,7 @@ class ProxyRequest(BaseModel):
     completion_tokens: int | None = None
     error: str | None = None
     parent_id: str | None = None
+    client_ip: str | None = None
     created_at: str = Field(default_factory=now_iso)
 
 
@@ -69,6 +70,7 @@ class ProxyRequestSummary(BaseModel):
     completion_tokens: int | None = None
     error: str | None = None
     parent_id: str | None = None
+    client_ip: str | None = None
     created_at: str = Field(default_factory=now_iso)
 
 
