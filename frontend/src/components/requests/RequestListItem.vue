@@ -20,7 +20,9 @@ function formatTime(iso: string) {
     class="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/50 cursor-pointer border-b text-sm transition-colors"
     @click="router.push({ name: 'request-detail', params: { id: request.id } })"
   >
-    <span class="w-28 shrink-0 rounded bg-muted text-center text-xs font-mono font-medium uppercase">
+    <span
+      class="w-28 shrink-0 rounded bg-muted text-center text-xs font-mono font-medium uppercase"
+    >
       {{ request.protocol }}
     </span>
     <span class="w-14 shrink-0 font-mono text-xs text-muted-foreground">{{
