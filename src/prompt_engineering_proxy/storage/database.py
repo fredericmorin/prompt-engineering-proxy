@@ -46,10 +46,16 @@ CREATE TABLE IF NOT EXISTS request_tags (
     tag TEXT NOT NULL,
     PRIMARY KEY (request_id, tag)
 );
+
+CREATE TABLE IF NOT EXISTS schema_version (
+    version INTEGER NOT NULL
+);
 """
 
 
 class Database:
+    SCHEMA_VERSION = 2  # Bump this when adding new migrations
+
     def __init__(self) -> None:
         self._conn: aiosqlite.Connection | None = None
 
@@ -76,18 +82,36 @@ class Database:
 
     @staticmethod
     async def _migrate(conn: aiosqlite.Connection) -> None:
-        """Apply incremental schema migrations for columns added after initial schema."""
-        cursor = await conn.execute("PRAGMA table_info(servers)")
-        existing = {row[1] for row in await cursor.fetchall()}
-        if "proxy_slug" not in existing:
-            await conn.execute("ALTER TABLE servers ADD COLUMN proxy_slug TEXT")
-            logger.info("Migration: added proxy_slug column to servers")
+        """Apply incremental schema migrations using a version counter."""
+        # Ensure the schema_version table exists (handles pre-versioning databases)
+        await conn.execute("CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)")
 
-        cursor = await conn.execute("PRAGMA table_info(proxy_requests)")
-        existing = {row[1] for row in await cursor.fetchall()}
-        if "client_ip" not in existing:
-            await conn.execute("ALTER TABLE proxy_requests ADD COLUMN client_ip TEXT")
-            logger.info("Migration: added client_ip column to proxy_requests")
+        row = await (await conn.execute("SELECT version FROM schema_version")).fetchone()
+        if row is None:
+            # First run — insert starting version 0 so migrations run from the beginning
+            await conn.execute("INSERT INTO schema_version (version) VALUES (0)")
+            current = 0
+        else:
+            current = row[0]
+
+        # Migration 1: add proxy_slug column to servers
+        if current < 1:
+            cols = {r[1] for r in await (await conn.execute("PRAGMA table_info(servers)")).fetchall()}
+            if "proxy_slug" not in cols:
+                await conn.execute("ALTER TABLE servers ADD COLUMN proxy_slug TEXT")
+                logger.info("Migration 1: added proxy_slug column to servers")
+
+        # Migration 2: add client_ip column to proxy_requests
+        if current < 2:
+            cols = {r[1] for r in await (await conn.execute("PRAGMA table_info(proxy_requests)")).fetchall()}
+            if "client_ip" not in cols:
+                await conn.execute("ALTER TABLE proxy_requests ADD COLUMN client_ip TEXT")
+                logger.info("Migration 2: added client_ip column to proxy_requests")
+
+        # Update stored version
+        if current < Database.SCHEMA_VERSION:
+            await conn.execute("UPDATE schema_version SET version = ?", (Database.SCHEMA_VERSION,))
+            logger.info("Schema version updated: %d → %d", current, Database.SCHEMA_VERSION)
 
     async def close(self) -> None:
         if self._conn:
