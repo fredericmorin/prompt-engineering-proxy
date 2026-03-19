@@ -22,8 +22,9 @@ class RedisSubscriber:
         await pubsub.subscribe(channel)
         logger.debug("Subscribed to Redis channel: %s", channel)
         try:
-            async for message in pubsub.listen():
-                if message["type"] == "message":
+            while True:
+                message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+                if message is not None and message["type"] == "message":
                     yield f"data: {message['data']}\n\n"
         except Exception as exc:
             logger.debug("Redis subscriber error on channel %s: %s", channel, exc)
