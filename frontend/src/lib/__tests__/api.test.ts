@@ -46,7 +46,9 @@ describe("deriveStatus", () => {
 
   it("error takes priority over streaming", () => {
     expect(
-      deriveStatus(makeRequest({ is_streaming: true, error: "connection reset" })),
+      deriveStatus(
+        makeRequest({ is_streaming: true, error: "connection reset" }),
+      ),
     ).toBe("error");
   });
 });

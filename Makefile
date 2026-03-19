@@ -69,7 +69,7 @@ check-frontend: frontend/node_modules ## Run frontend checks (lint + type-check 
 	cd frontend && npx eslint src/
 	cd frontend && npx prettier --check "src/**/*.{ts,vue,css}"
 	cd frontend && npx vue-tsc --noEmit
-	cd frontend && npm run test --if-present
+	cd frontend && npm test
 
 # ── Formatting ───────────────────────────────────────────────────────────────
 
