@@ -19,7 +19,6 @@ dependencies = [
     "redis[hiredis]",
     "sse-starlette",
     "python-ulid",
-    "pytest-asyncio>=1.3.0",
 ]
 
 [project.optional-dependencies]
