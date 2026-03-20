@@ -121,7 +121,13 @@ async def sse_request_stream(request: Request, request_id: str) -> StreamingResp
 
             # 3. Yield live chunks from Redis, skipping duplicates already replayed.
             skipped = 0
-            async for message in pubsub.listen():
+            while True:
+                message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+                if message is None:
+                    if disconnect.is_set() or await request.is_disconnected():
+                        disconnect.set()
+                        break
+                    continue
                 if message["type"] != "message":
                     continue
                 if disconnect.is_set() or await request.is_disconnected():

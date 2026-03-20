@@ -32,7 +32,7 @@ services:
         set -ex
         pip install uv -q
         uv sync --frozen
-        uv run uvicorn prompt_engineering_proxy.main:app --host 0.0.0.0 --port 8000 --reload
+        exec uv run uvicorn prompt_engineering_proxy.main:app --host 0.0.0.0 --port 8000 --reload
 
   frontend:
     image: node:24-slim
@@ -46,7 +46,7 @@ services:
         set -ex
         cd frontend
         npm install
-        npm run build -- --watch
+        exec npm run build -- --watch
 
 volumes:
   redis-data:
